@@ -9,19 +9,10 @@
 
 int main (int argc, char** argv) {
 
-    char *input;
-    char *output;
+    char *output = NULL;
 
-    char test_str[] = "Hallo Welt!";
-
-    int len = strlen(test_str);
-    
-    input = (char *) calloc(len, sizeof(char));
-    output = (char *) calloc(4 * (len / 3), sizeof(char));
-
-    strncpy(input, test_str, len);
-
-    base64_encode(input, output, len);
+    char string [] = "1234";
+    base64_encode(string, &output, strlen(string));
 
     printf("%s", output);
 

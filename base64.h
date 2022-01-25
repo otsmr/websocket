@@ -5,5 +5,9 @@
 
 #pragma once
 
-void base64_decode (char * input, char * output, int length);
-void base64_encode (char * input, char * output, int length);
+#include <string.h>
+#include <stdlib.h>
+#include <cmath>
+
+void base64_decode (char * input, char ** output, int length);
+void base64_encode (char * input, char ** output, int length);
