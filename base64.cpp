@@ -6,7 +6,7 @@
 
 #include "base64.h"
 
-char base64_table[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 void base64_decode (char * input, char * output, int length) {
 
@@ -32,10 +32,10 @@ void base64_encode (char * input, char **output, int length) {
             }
         }
 
-        *(out+0) = base64_table[   *tmp >> 2                              ];
-        *(out+1) = base64_table[ ( *tmp    & 3   ) << 4 | (*(tmp+1) >> 4) ];
-        *(out+2) = base64_table[ (*(tmp+1) & 15  ) << 2 | (*(tmp+2) >> 6) ];
-        *(out+3) = base64_table[  *(tmp+2) & 63                           ];
+        *(out+0) = characters[   *tmp >> 2                              ];
+        *(out+1) = characters[ ( *tmp    & 3   ) << 4 | (*(tmp+1) >> 4) ];
+        *(out+2) = characters[ (*(tmp+1) & 15  ) << 2 | (*(tmp+2) >> 6) ];
+        *(out+3) = characters[  *(tmp+2) & 63                           ];
     
         out += 4;
         pos += 3;
