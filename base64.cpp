@@ -5,7 +5,6 @@
 
 
 #include "base64.h"
-#include <string>
 
 char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -33,7 +32,6 @@ void base64_decode (char *input, char **output, int *length) {
             if (*(input+i) == '=') {
                 *(tmp+i) = '\00';
                 (*length)--;
-                printf("!!");
             } else {
                 *(tmp+i) = reverse_characters[*(input+i)];
             }
