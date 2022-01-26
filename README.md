@@ -6,8 +6,9 @@ First of all it is **about learning C++ on a project**. The long term goal is to
 
 ## standards
 ### already implemented
-### work in progress
 - [Base64](https://datatracker.ietf.org/doc/html/rfc4648#section-4)
+### work in progress
+- [SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
 ### still to make
 - [the WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)
 

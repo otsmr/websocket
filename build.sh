@@ -4,7 +4,9 @@ cmake -S . -B build
 cmake --build build
 
 if [ "$1" == "run" ]; then
-    clear
-    echo "[RUN] build/main.bin\n"
+    
+    echo "\n ------------ \n\n[RUN] build/main.bin\n"
     ./build/main.bin
+
+    echo "\n"
 fi
