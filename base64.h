@@ -9,5 +9,5 @@
 #include <stdlib.h>
 #include <cmath>
 
-void base64_decode (char *input, char **output, int *output_length);
-void base64_encode (char *input, char **output, int length);
+void base64_decode (char *input, uint8_t **output, uint64_t *length);
+void base64_encode (uint8_t *input, char **output, uint64_t length);
