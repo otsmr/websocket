@@ -11,6 +11,7 @@ First of all it is **about learning C++ on a project**. The long term goal is to
 ### work in progress
 ### still to make
 - [the WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)
+- 32 and 64 bit support
 
 # requirements
 - CMake 3.22.1 `brew install cmake`

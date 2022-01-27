@@ -4,8 +4,8 @@
  */
 
 #include <string>
-#include "base64.h"
-#include "sha1.h"
+#include "base64/base64.h"
+#include "sha1/sha1.h"
 
 int main (int argc, char** argv) {
 
