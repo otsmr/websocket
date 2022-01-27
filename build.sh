@@ -13,7 +13,7 @@ cmake --build build
 if [ "$1" == "run" ]; then
     
     echo "\n ------------ \n\n[RUN] websocket server\n"
-    ./build/server
+    ./build/main
 
     echo "\n"
 fi

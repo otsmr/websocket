@@ -3,23 +3,56 @@
  * 
  */
 
-#include <string>
-#include "base64/base64.h"
-#include "sha1/sha1.h"
+#include "server.h"
 
-int main (int argc, char** argv) {
+namespace websocket {
 
-    uint8_t hash[20];
-    char * output = NULL;
+void server::start () {
 
-    char string[] = "dGhlIHNhbXBsZSBub25jZQ==258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-    sha1((uint8_t *) string, hash, strlen(string));
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0); // AF_INET6
+    if (sockfd == -1) {
+        std::cout << "Failed to create socket. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
-    base64_encode(hash, &output, 20);
+    // Listen to port 9999 on any address
+    sockaddr_in sockaddr;
+    sockaddr.sin_family = AF_INET;
+    sockaddr.sin_addr.s_addr = INADDR_ANY;
+    sockaddr.sin_port = htons(9999); 
+    
+    if (bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
+        std::cout << "Failed to bind to port 9999. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
-    printf("IST:  %s\n", output);
-    printf("SOLL: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\n");
+    // Start listening. Hold at most 10 connections in the queue
+    if (listen(sockfd, 10) < 0) {
+        std::cout << "Failed to listen on socket. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
 
-    return 0;
+    // Grab a connection from the queue
+    auto addrlen = sizeof(sockaddr);
+    int connection = accept(sockfd, (struct sockaddr*)&sockaddr, (socklen_t*)&addrlen);
+    if (connection < 0) {
+        std::cout << "Failed to grab connection. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // Read from the connection
+    char buffer[100];
+    auto bytesRead = read(connection, buffer, 100);
+    std::cout << "The message was: " << buffer;
+
+    // Send a message to the connection
+    std::string response = "Good talking to you\n";
+    send(connection, response.c_str(), response.size(), 0);
+
+    // Close the connections
+    close(connection);
+    close(sockfd);
 
 }
+
+} // namespace websocket
