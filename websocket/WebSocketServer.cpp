@@ -8,9 +8,6 @@
 #include "base64/base64.h"
 #include "sha1/sha1.h"
 #include "http/HttpRequest.h"
-// #include "socket/server.h"
-
-// using namespace WebSocket;
 
 int main () {
 
@@ -24,8 +21,6 @@ int main () {
         "Sec-WebSocket-Protocol: chat, superchat\n" \
         "Sec-WebSocket-Version: 13";
 
-        // std::vector<uint8_t>
-
     HTTP::HttpRequest Request;
 
     std::vector<uint8_t> raw_header(header.begin(), header.end());
@@ -33,20 +28,23 @@ int main () {
 
     Request.from_raw_request(raw_header);
 
-    printf("\nMethod: %d", Request.method());
+    std::vector<HTTP::HttpRequest::Header> headers = Request.headers();
 
-    // uint8_t hash[20];
-    // char * output = NULL;
+    for (const HTTP::HttpRequest::Header& header : headers) 
+        std::cout << "\n" << header.name << ": " << header.value;
 
-    // std::string guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    std::string sec_key = 
+        Request.get_header("sec-websocket-key").value +
+        "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+    uint8_t hash[20];
+    sha1((uint8_t *) sec_key.c_str(), hash, sec_key.size());
 
-    // sha1((uint8_t *) string, hash, strlen(string));
+    char * output = NULL;
+    base64_encode(hash, &output, 20);
 
-    // base64_encode(hash, &output, 20);
-
-    // printf("IST:  %s\n", output);
-    // printf("SOLL: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\n");
+    printf("\nIST:  %s\n", output);
+    printf("SOLL: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\n");
 
     return 0;
 

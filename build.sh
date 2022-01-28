@@ -12,10 +12,12 @@ cmake --build build
 
 if [ "$1" == "run" ]; then
     
-    echo "\n ------------ \n\n[RUN] websocket server\n"
+    echo "-----------------------"
+    echo "[RUN] websocket server"
+    echo ""
     ./build/main
+    echo ""
 
-    echo "\n"
 fi
 
 if [ "$1" == "test" ]; then

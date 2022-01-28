@@ -8,6 +8,9 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <algorithm>
+
+#include "Url.h"
 
 namespace HTTP {
     
@@ -28,10 +31,10 @@ public:
     ~HttpRequest();
 
     std::vector<Header> headers() { return m_headers; };
+    Header get_header(std::string name);
 
     Method method() const { return m_method; }
-    void set_method(Method method) { m_method = method; } 
-    // Header header(std::string name);
+    Url url() const { return m_url; }
 
     HttpRequest from_raw_request(std::vector<uint8_t> raw_request);
 
@@ -40,6 +43,7 @@ private:
     Method m_method { Method::Invalid };
     std::vector<Header> m_headers;
     std::vector<uint8_t> m_body;
+    Url m_url;
     
 };
 
