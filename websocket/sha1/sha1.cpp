@@ -19,8 +19,8 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
     uint32_t tmp;
     uint32_t pos = 0;
     uint32_t W[80];
-    uint64_t l = length * 8;
-    uint64_t len_pad = ((length) + (64 - (length%64)));
+    size_t l = length * 8;
+    size_t len_pad = ((length) + (64 - (length%64)));
 
 
     if ((l % 512) != 0 && (l+65) > 512) {

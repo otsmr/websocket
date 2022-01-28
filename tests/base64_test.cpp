@@ -7,7 +7,7 @@ void test_base64(char *input, char *expected, int length) {
 
     char *output = NULL;
     uint8_t *string_decoded = NULL;
-    uint64_t decoded_length = -1;
+    size_t decoded_length = -1;
 
     base64_encode((uint8_t *) input, &output, length);
 
