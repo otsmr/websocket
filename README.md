@@ -9,8 +9,10 @@ First of all it is **about learning C++ on a project**. The long term goal is to
 - [Base64](https://datatracker.ietf.org/doc/html/rfc4648#section-4)
 - [SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
 ### work in progress
+- [HTTP-Header](https://datatracker.ietf.org/doc/html/rfc2616)
 ### still to make
 - [the WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)
+- (?) [URL](https://datatracker.ietf.org/doc/html/rfc3986)
 - 32 and 64 bit support
 
 # requirements

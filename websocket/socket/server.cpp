@@ -5,7 +5,7 @@
 
 #include "server.h"
 
-namespace websocket {
+namespace WebSocket {
 
 void server::start () {
 
@@ -55,4 +55,4 @@ void server::start () {
 
 }
 
-} // namespace websocket
+} // namespace WebSocket

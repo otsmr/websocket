@@ -1,4 +1,4 @@
-
+#!/bin/bash
 
 if [ "$1" == "test" ]; then
     cd ./tests

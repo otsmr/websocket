@@ -11,7 +11,7 @@
 #include <iostream>
 #include <unistd.h>
 
-namespace websocket {
+namespace WebSocket {
 class server {
 
 public:
