@@ -10,7 +10,40 @@
 #include "http/HttpRequest.h"
 #include "http/HttpResponse.h"
 
+#include "socket/Socket.h"
+
 int main () {
+
+    char option = 0;
+    Socket socket((std::string) "/", 9091, 10000);
+
+    int status = socket.listen();
+    if (status == 1)
+        return 1;
+
+    while(option != 's') {
+        std::string o = 
+            "-- Optionen -- \n" \
+            "   s: Server stoppen\n" \
+            "   a: Status anzeigen\n";
+
+        std::cout << o; 
+        std::cin >> option;
+        switch (option)
+        {
+        case 's':
+            socket.stop();
+            break;
+        case 'a':
+            socket.display_stats();
+            break;
+        default:
+            std::cout << "Option nicht bekannt.\n";
+            break;
+        }
+    }
+
+    return 0;
 
     std::string header = 
         "GET /chat HTTP/1.1\n" \

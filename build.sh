@@ -13,8 +13,7 @@ cmake --build build
 if [ "$1" == "run" ]; then
     
     echo "-----------------------"
-    echo "[RUN] websocket server"
-    echo ""
+    pkill main
     ./build/main
     echo ""
 
