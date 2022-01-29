@@ -1,0 +1,22 @@
+<!DOCTYPE HTML>  
+<html><head></head><body>  
+<script>
+
+    const socket = new WebSocket('ws://127.0.0.0:9090');
+
+    socket.onopen = _ => console.log("[OPEN]");  
+    socket.onerror = e => console.log("[ERROR]", e);
+    socket.onmessage =  m => console.log("[MESSAGE]", m);
+    socket.onclose = e => console.log("[CLOSE]", e.code);
+
+    const i = setInterval(() => {
+        socket.send("ping");
+    }, 1000);
+
+    setTimeout(() => {
+        clearInterval(i);
+        socket.close();
+    }, 5000);
+
+</script>
+</body></html>  
