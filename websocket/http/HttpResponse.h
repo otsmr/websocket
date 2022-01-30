@@ -10,6 +10,8 @@
 #include <iostream>
 #include <algorithm>
 
+#define linebreak "\r\n"
+
 namespace HTTP {
     
 class HttpResponse {

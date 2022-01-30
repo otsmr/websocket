@@ -9,7 +9,7 @@
 #define S(word, bits) \
             (((word) << (bits)) | ((word) >> (32-(bits))))
 
-void sha1 (uint8_t *input, uint8_t *output, int length) {
+void sha1 (uint8_t *input, uint8_t *output, int length) {   
 
     int t;
     int wcount;
@@ -36,17 +36,13 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
 
         // a. "1" is appended.
         *(message+length) = 0x80;
-
         // b. "0"s are appended. -> calloc()
-
         // c. 2-word representation of l
-
         for (char i = 0; i < 8; i++)
             *((message + len_pad) - i-1) = (uint8_t) (l >> (i*8)) & 0xff;
 
     }
 
-    
     // 5. Functions and Constants Used
 
     const uint32_t K[] =    {
@@ -99,22 +95,15 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
         for (t = 0; t <= 79; t++)
         {
             // 5. Functions and Constants Used
-
-            switch (t/20)
-            {
-            case 0:
+            char tt = t/20; 
+            if (tt == 0)
                 f = (B & C) | ((~B) & D);
-                break;
-            case 1:
-            case 3:
+            else if (tt == 1 || tt == 3)
                 f = B ^ C ^ D;
-                break;
-            case 2:
+            else if (tt == 2)
                 f = (B & C) | (B & D) | (C & D);
-                break;
-            }
 
-            tmp = S(A, 5) + f + E + W[t] + K[t/20];
+            tmp = S(A, 5) + f + E + W[t] + K[tt];
             E = D;
             D = C;
             C = S(B, 30);

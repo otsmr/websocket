@@ -79,8 +79,11 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
                 buffer.push_back(at());
                 break;
             case State::InProtocol:
-                if (at() == '\n') 
+                if (at() == '\r')
+                    index++;
+                if (at() == '\n') {
                     commit(protocol, State::InHeaderName);
+                } 
                 buffer.push_back(at());
                 break;
             case State::InHeaderName:
@@ -98,6 +101,8 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
                 buffer.push_back(at());
                 break;
             case State::InHeaderValue:
+                if (at() == '\r')
+                    index++;
                 if (at() == '\n') {
                     commit(header.value, State::InHeaderName);
                     m_headers.push_back(header);
@@ -108,10 +113,11 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
                 break;
         }
 
-        if (at() == '\n' && at(1) == '\n') {
-            // std::cout << "BODY";
+        if (at() == '\r')
+            index++;
+
+        if (at() == '\n' && ((at(1) == '\n') || at(1) == '\r')) 
             break;
-        }
 
         index++;
 

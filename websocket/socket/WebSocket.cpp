@@ -27,14 +27,20 @@ void WebSocket::listen() {
                 close();
                 return;
             }
+
             m_state = State::Connected;
-            continue;
+
+        } else {
+
+            std::cout << "[WebSocket " << m_connection << "] Dataframe: " << buffer << "\n";
+
+            send(m_connection, buffer, 255, 0);
 
         }
 
-        std::cout << "[WebSocket " << m_connection << "] Dataframe: " << buffer;
-
-        send(m_connection, buffer, 255, 0);
+        for (size_t i = 0; i < MAX_PACKET_SIZE; i++)
+            buffer[i] = '\00';
+        
     }
 
     std::cout << "[WebSocket " << m_connection << "] closed by the client.\n";
@@ -43,8 +49,6 @@ void WebSocket::listen() {
 }
 
 int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
-
-    std::cout << buffer;
 
     std::vector<uint8_t> raw_data(buffer, buffer+MAX_PACKET_SIZE);
 
