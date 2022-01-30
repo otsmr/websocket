@@ -72,23 +72,23 @@ void Socket::threaded_connections (int m_sockfd, sockaddr_in sockaddr, State *st
                 sleep(0.1); 
             }
 
+            for (WebSocket& connection : connections)
+                connection.~WebSocket();
+
             std::cout << "WebSockets stoppend\n";
 
             *state = State::Stopped;
             return;
         }
 
-        WebSocket webSocket (connection);
+        WebSocket * p = (WebSocket *) calloc(1, sizeof(WebSocket));
+        WebSocket * webSocket = new (p) WebSocket (connection);
 
-        connections.push_back(webSocket);
-
-        std::cout << "webSocket: " << &webSocket << "\n";
-
+        connections.push_back(*webSocket);
         // CHECK: unsicher?
         std::thread ([](WebSocket *webSocket) {
-            std::cout << "webSocket: " << webSocket << "\n";
             webSocket->listen();
-        }, &webSocket).detach();
+        }, webSocket).detach();
 
         // TODO: Was, wenn der WebSocket von Client geschlossen wird?
         

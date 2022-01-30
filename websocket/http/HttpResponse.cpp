@@ -45,6 +45,8 @@ std::vector<uint8_t> HttpResponse::get_raw_response() {
     for (const HTTP::HttpResponse::Header& header : m_headers) 
         response += header.name + ": " + header.value + "\n";
 
+    response += "\n";
+
     std::vector<uint8_t> raw_response(response.begin(), response.end());
     raw_response.assign(response.begin(), response.end());
 

@@ -14,25 +14,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+add_executable(main
+  WebSocketServer.cpp
 
-add_library(base64 base64/base64.cpp)
-add_library(sha1 sha1/sha1.cpp)
-add_library(http 
+  socket/Socket.cpp
+  socket/WebSocket.cpp
+
+  sha1/sha1.cpp
+
+  base64/base64.cpp
+
   http/HttpRequest.cpp
   http/HttpResponse.cpp
   http/Url.h
-)
-add_library(socket 
-  socket/Socket.cpp
-  socket/WebSocket.cpp
+  
 )
 
-add_executable(main
-  WebSocketServer.cpp
-)
-
-target_link_libraries(main PRIVATE base64)
-target_link_libraries(main PRIVATE sha1)
-target_link_libraries(main PRIVATE http)
-target_link_libraries(main PRIVATE socket)
 target_link_libraries(main PRIVATE Threads::Threads)
