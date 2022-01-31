@@ -19,6 +19,7 @@ add_executable(main
 
   socket/Socket.cpp
   socket/WebSocket.cpp
+  socket/DataFrame.cpp
 
   sha1/sha1.cpp
 

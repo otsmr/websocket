@@ -14,28 +14,28 @@
 
 void test_parse_data_frame (uint8_t * data) {
 
-    DataFrame frame = WebSocket::parse_data_frame(data);
+    // DataFrame frame = WebSocket::parse_data_frame(data);
 
-    printf("Datenlaenge (%llu)\n", frame.payload_len_bytes);
-    printf("MASK (%d)\n", frame.mask);
-    printf("FIN (%d)\n", frame.fin);
-    printf("Opcode (%d)\n", frame.fin);
+    // printf("Datenlaenge (%llu)\n", frame.payload_len_bytes);
+    // printf("MASK (%d)\n", frame.mask);
+    // printf("FIN (%d)\n", frame.fin);
+    // printf("Opcode (%d)\n", frame.fin);
 
-    switch (frame.opcode)
-    {
-    case DataFrame::Opcode::TextFrame:
-        printf("-- Text --\n");
+    // switch (frame.opcode)
+    // {
+    // case DataFrame::Opcode::TextFrame:
+    //     printf("-- Text --\n");
 
-        std::cout << frame.text_data << "\n";
+    //     std::cout << frame.text_data << "\n";
 
-        break;
+    //     break;
     
-    case DataFrame::Opcode::BinaryFrame:
-        printf("-- Binary --\n");
-        break;
-    default:
-        break;
-    }
+    // case DataFrame::Opcode::BinaryFrame:
+    //     printf("-- Binary --\n");
+    //     break;
+    // default:
+    //     break;
+    // }
 
 }
 

@@ -8,31 +8,63 @@
 </head>
 <body>
 
-    <button onclick="connect()">Verbinden</button>
+    <p>Status: <span id="state">Disconnected</span></p>
+    <button onclick="connect()">Connect</button>
+    <button onclick="ping()">Ping</button>
+    <button onclick="big()">BigMessage</button>
+    <button onclick="close()">Close</button><br /><br />
+
+    <textarea id="message" placeholder="Nachricht senden"></textarea> <br />
+    <button onclick="send()" >Senden</button>
+
 
     <script>
 
-        function connect () {
+        let socket = null;
 
-            console.log("Connecting...");
-            const socket = new WebSocket('ws://localhost:8080');
-        
-            socket.onopen = _ => {
-                console.log("[OPEN]");
-                const i = setInterval(() => {
-                    socket.send("ping pöng");
-                    console.log("[SEND] ping pöng");
-                }, 1000);
-        
-                setTimeout(() => {
-                    clearInterval(i);
-                    console.log("[CLOSE]");
-                    socket.close();
-                }, 5000);
-            };  
+        function close() {
+            if (socket === null)
+                return;
+            state.innerText = "Disconnecting...";
+            socket.close();
+        }
+        function big () {
+            let message = "";
+            for (let i = 0; i < 700000; i++) {
+                if ((i % 26) == 0 && i > 0)
+                    message+= " ";
+                message += String.fromCharCode((i) % 26 + 65)
+            }
+            socket.send(message);
+        }
+        function ping () {
+            socket.send("ping pöng");
+            const i = setInterval(() => {
+                socket.send("ping pöng");
+            }, 1000);
+    
+            setTimeout(() => {
+                clearInterval(i);
+            }, 5000);
+        }
+        function send () {
+            socket.send(message.value);
+        }
+
+        function connect () {
+            state.innerText = "Connecting...";
+            socket = new WebSocket('ws://localhost:8080');
+
             socket.onerror = e => console.log("[ERROR]", e);
             socket.onmessage =  m => console.log("[MESSAGE]", m);
-            socket.onclose = e => console.log("[CLOSED]", e.code);
+            socket.onclose = e => {
+                state.innerText = "Disconnected";
+                console.log("[CLOSED]", e.code);
+                socket = null;
+            };
+            socket.onopen = _ => {
+                state.innerText = "Connected";
+            };  
 
         }
 
