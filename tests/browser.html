@@ -7,25 +7,35 @@
     <title>Websocket test</title>
 </head>
 <body>
-<script>
 
-    console.log("Connecting...");
-    const socket = new WebSocket('ws://localhost:8080');
+    <button onclick="connect()">Verbinden</button>
 
-    socket.onopen = _ => {
-        console.log("[OPEN]");
-        const i = setInterval(() => {
-            socket.send("ping");
-        }, 1000);
+    <script>
 
-        setTimeout(() => {
-            clearInterval(i);
-            socket.close();
-        }, 5000);
-    };  
-    socket.onerror = e => console.log("[ERROR]", e);
-    socket.onmessage =  m => console.log("[MESSAGE]", m);
-    socket.onclose = e => console.log("[CLOSE]", e.code);
+        function connect () {
 
-</script>
+            console.log("Connecting...");
+            const socket = new WebSocket('ws://localhost:8080');
+        
+            socket.onopen = _ => {
+                console.log("[OPEN]");
+                const i = setInterval(() => {
+                    socket.send("ping pöng");
+                    console.log("[SEND] ping pöng");
+                }, 1000);
+        
+                setTimeout(() => {
+                    clearInterval(i);
+                    console.log("[CLOSE]");
+                    socket.close();
+                }, 5000);
+            };  
+            socket.onerror = e => console.log("[ERROR]", e);
+            socket.onmessage =  m => console.log("[MESSAGE]", m);
+            socket.onclose = e => console.log("[CLOSED]", e.code);
+
+        }
+
+    </script>
+
 </body></html>  

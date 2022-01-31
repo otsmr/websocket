@@ -1,3 +1,4 @@
 build/
 random/
 .vscode/
+.DS_Store

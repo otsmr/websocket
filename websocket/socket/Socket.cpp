@@ -17,7 +17,7 @@ void Socket::display_stats() {
 
 void Socket::stop() {
 
-    m_state = State::Stopping;
+    m_state = Socket::State::Stopping;
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0); // AF_INET6
 
@@ -69,7 +69,7 @@ void Socket::threaded_connections (int m_sockfd, sockaddr_in sockaddr, State *st
                 for (WebSocket& connection : connections)
                     if (connection.state() != WebSocket::State::Disconnected)
                         run = 1;
-                sleep(0.1); 
+                sleep(1); 
             }
 
             for (WebSocket& connection : connections)
