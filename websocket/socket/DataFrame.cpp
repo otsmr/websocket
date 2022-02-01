@@ -5,17 +5,34 @@
 
 #include "DataFrame.h"
 
-void DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE]) {
+DataFrame::DataFrame ()
+{
+}
+DataFrame::~DataFrame ()
+{
+}
 
-    std::cout << "TODO: add_payload_data()\n";
+size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE]) {
+
+    uint64_t copybytes = (uint64_t) payload_len_bytes - payload_already_received;
+    if (copybytes > MAX_PACKET_SIZE)
+        copybytes = MAX_PACKET_SIZE;
+
+    uint64_t index;
+    for (uint64_t i = 0; i < copybytes; i++) {
+        index = i + payload_already_received;
+        buffer[i] = buffer[i] ^ (masking_key) >> ((index % 4) * 8);
+    }
+
+    memcpy(application_data+payload_already_received, buffer, copybytes);
+
+    payload_already_received += copybytes;
+
+    return (size_t) copybytes;
 
 }
 
-void DataFrame::add_fragmented_frame(DataFrame fragmented_frame) {
-    std::cout << "TODO: add_fragmented_frame()\n";
-}
-
-DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE]) {
+DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size) {
     
     /*
       0                   1                   2                   3
@@ -56,35 +73,55 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE]) {
 
     frame.mask = (buffer[1] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
 
-    frame.payload_len_bytes = buffer[1] & 0b1111111;
+
     uint8_t header_end = 2;
+
+    //   The length of the "Payload data", in bytes: if 0-125, that is the
+    //   payload length.
+
+    frame.payload_len_bytes = buffer[1] & 0b1111111;
 
     if (frame.payload_len_bytes == 126) {
 
+        // If 126, the following 2 bytes interpreted as a
+        // 16-bit unsigned integer are the payload length.
+
         std::cout << "Extended payload lenght\n";
 
-        frame.payload_len_bytes += buffer[header_end] << 8;
-        frame.payload_len_bytes += buffer[header_end+1];
+        frame.payload_len_bytes = (uint16_t) buffer[header_end] << 8;
+        frame.payload_len_bytes += (uint16_t) buffer[header_end+1];
 
         header_end +=2;
 
     }
 
+
+    // If 127, the following 8 bytes interpreted as a 64-bit unsigned integer (the
+    // most significant bit MUST be 0) are the payload length.  
+    
+    // Multibyte
+    // length quantities are expressed in network byte order.  Note that
+    // in all cases, the minimal number of bytes MUST be used to encode
+    // the length, for example, the length of a 124-byte-long string
+    // can't be encoded as the sequence 126, 0, 124.  
+
     if (frame.payload_len_bytes == 127) {
+
+        std::cout << "Extended Extended payload lenght\n";
 
         if ((buffer[header_end] >> 7) == 0b1) {
             std::cout << "\nthe most significant bit MUST be 0\n";
             buffer[header_end] = 0;
         }
-        
-        frame.payload_len_bytes += (uint64_t) buffer[header_end]   << 56;
+
+        frame.payload_len_bytes = (uint64_t) buffer[header_end]   << 56;
         frame.payload_len_bytes += (uint64_t) buffer[header_end+1] << 48;
         frame.payload_len_bytes += (uint64_t) buffer[header_end+2] << 40;
         frame.payload_len_bytes += (uint64_t) buffer[header_end+3] << 32;
-        frame.payload_len_bytes += buffer[header_end+4] << 24;
-        frame.payload_len_bytes += buffer[header_end+5] << 16;
-        frame.payload_len_bytes += buffer[header_end+6] <<  8;
-        frame.payload_len_bytes += buffer[header_end+7];
+        frame.payload_len_bytes += (uint64_t) buffer[header_end+4] << 24;
+        frame.payload_len_bytes += (uint64_t) buffer[header_end+5] << 16;
+        frame.payload_len_bytes += (uint64_t) buffer[header_end+6] <<  8;
+        frame.payload_len_bytes += (uint64_t) buffer[header_end+7]      ;
         header_end += 8;
 
     }
@@ -97,8 +134,9 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE]) {
         header_end += 4;
     }
 
-    printf("Bytes (%llu)\n", frame.payload_len_bytes);
-    return frame;
+    uint64_t copybytes = frame.payload_len_bytes;
+    if (copybytes > (uint64_t) buffer_size - header_end)
+        copybytes = (uint64_t) buffer_size - header_end;
 
     if (frame.mask == DataFrame::Bool::Set) {
 
@@ -110,7 +148,8 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE]) {
          *      transformed-octet-i = original-octet-i XOR masking-key-octet-j
          */
 
-        for (uint64_t i = 0; i < frame.payload_len_bytes; i++)
+
+        for (uint64_t i = 0; i < copybytes; i++)
             buffer[header_end+i] = buffer[header_end+i] ^ (frame.masking_key) >> ((i % 4) * 8);
 
     }
@@ -118,23 +157,15 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE]) {
     frame.application_data = (uint8_t *) calloc(frame.payload_len_bytes, sizeof(uint8_t));
     if (frame.application_data == NULL) {
         std::cout << "ERROR calloc\n";
+        std::cout << "frame.payload_len_bytes=" << frame.payload_len_bytes << "\n";
         exit(1);
+        return frame;
     }
 
     
-    memcpy(frame.application_data, buffer+header_end, frame.payload_len_bytes);
+    memcpy(frame.application_data, buffer+header_end, copybytes);
 
-    /*
-      EXAMPLE: For a text message sent as three fragments, the first
-      fragment would have an opcode of 0x1 and a FIN bit clear, the
-      second fragment would have an opcode of 0x0 and a FIN bit clear,
-      and the third fragment would have an opcode of 0x0 and a FIN bit
-      that is set. */
-
-    if (frame.opcode == DataFrame::Opcode::TextFrame) {
-        std::string s(frame.application_data, frame.application_data+frame.payload_len_bytes);
-        frame.text_data = s;
-    }
+    frame.payload_already_received = copybytes;
 
     return frame;
 

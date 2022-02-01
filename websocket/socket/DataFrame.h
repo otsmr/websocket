@@ -6,12 +6,23 @@
 #pragma once
 
 #include <unistd.h>
-#define MAX_PACKET_SIZE 1500
+#include <string>
+#include <iostream>
+#include <cstring>
 
-#include "WebSocket.h"
+#define MAX_PACKET_SIZE 4096
+
+#ifdef __linux__
+typedef u_int8_t uint8_t;
+#endif
+
+// #include "WebSocket.h"
 
 class DataFrame {
 public:
+
+    DataFrame ();
+    ~DataFrame ();
 
     enum Bool {
         NotSet = 0,
@@ -43,17 +54,19 @@ public:
     // "Application data"
     uint64_t payload_len_bytes = 0; // max 64 bits in length
     uint64_t payload_already_received = 0;
-    int payload_full() { return (payload_len_bytes - payload_already_received == 0) ? 1 : 0; }
+    int payload_full() { return ((payload_len_bytes - payload_already_received) == 0) ? 1 : 0; }
     
     uint32_t masking_key;
 
     uint8_t *extensions_data;
     uint8_t *application_data;
 
-    std::string text_data;
+    std::string get_utf8_string() {
+        std::string s(application_data, application_data+payload_already_received);
+        return s;
+    }
 
-    void add_payload_data (uint8_t buffer[MAX_PACKET_SIZE]);
-    void add_fragmented_frame(DataFrame fragmented_frame);
-    static DataFrame parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE]);
+    size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE]);
+    static DataFrame parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], int buffer_size);
     
 };

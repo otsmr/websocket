@@ -1,16 +1,10 @@
-/*
- * Copyright (c) 2022, Tobias <git@tsmr.eu>
- * 
- */
 
-#include <iostream>
-#include <string>
-#include "base64/base64.h"
-#include "sha1/sha1.h"
-#include "http/HttpRequest.h"
-#include "http/HttpResponse.h"
-#include "socket/WebSocket.h"
-#include "socket/Socket.h"
+
+#include <stdlib.h>
+
+#ifdef __linux__
+typedef u_int8_t uint8_t;
+#endif
 
 void test_parse_data_frame (uint8_t * data) {
 
@@ -39,8 +33,9 @@ void test_parse_data_frame (uint8_t * data) {
 
 }
 
-int main () {
+int main() {
 
+}
     /*
     // A single-frame unmasked text message
     uint8_t single_frame_unmasked_text [] = {
@@ -80,38 +75,3 @@ int main () {
 
 //    o  64KiB binary message in a single unmasked frame
 //       *  0x82 0x7F 0x0000000000010000 [65536 bytes of binary data]
-
-
-
-    char option = 0;
-    Socket socket((std::string) "/", 8080, 10000);
-
-    int status = socket.listen();
-    if (status == 1)
-        return 1;
-
-    while(option != 's') {
-        std::string o = 
-            "-- Optionen -- \n" \
-            "   s: Server stoppen\n" \
-            "   a: Status anzeigen\n";
-
-        std::cout << o; 
-        std::cin >> option;
-        switch (option)
-        {
-        case 's':
-            socket.stop();
-            break;
-        case 'a':
-            socket.display_stats();
-            break;
-        default:
-            std::cout << "Option nicht bekannt.\n";
-            break;
-        }
-    }
-
-    return 0;
-
-}

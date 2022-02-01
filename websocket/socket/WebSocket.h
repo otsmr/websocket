@@ -16,7 +16,7 @@
 
 #include "DataFrame.h"
 
-#define MAX_PACKET_SIZE 1500
+#define MAX_PACKET_SIZE 4096
 
 class WebSocket {
 public:
@@ -26,21 +26,23 @@ public:
         Closing,
         WaitingForHandshake = 10, // >= Connected to the WebSocket
         Connected,
-        WaitingForFinFrame,
         InDataPayload,
     };
 
     WebSocket(int connection);
-    ~WebSocket() {};
+    ~WebSocket();
 
     void listen();
-    int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
     void close();
     State state () { return m_state; };
     int connection () { return m_connection; };
 
+    void handle_frame(DataFrame frame);
+    int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
+
 private:
     State m_state { State::Disconnected };
     int m_connection = -1;
+    std::vector<DataFrame> m_framequeue;
 
 };

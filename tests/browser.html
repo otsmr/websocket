@@ -12,7 +12,7 @@
     <button onclick="connect()">Connect</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
-    <button onclick="close()">Close</button><br /><br />
+    <button onclick="closeSocket()">Close</button><br /><br />
 
     <textarea id="message" placeholder="Nachricht senden"></textarea> <br />
     <button onclick="send()" >Senden</button>
@@ -22,7 +22,7 @@
 
         let socket = null;
 
-        function close() {
+        function closeSocket() {
             if (socket === null)
                 return;
             state.innerText = "Disconnecting...";
@@ -30,11 +30,15 @@
         }
         function big () {
             let message = "";
+            let count = 0;
             for (let i = 0; i < 700000; i++) {
-                if ((i % 26) == 0 && i > 0)
-                    message+= " ";
+                if ((i % 26) == 0 && i > 0) {
+                    message += " (" + String(message.length) + ")\n";
+                }
                 message += String.fromCharCode((i) % 26 + 65)
             }
+            console.log("Total length of message:", message.length);
+            message += "\nTotal length of message: " + message.length + "\n";
             socket.send(message);
         }
         function ping () {
@@ -53,7 +57,7 @@
 
         function connect () {
             state.innerText = "Connecting...";
-            socket = new WebSocket('ws://localhost:8080');
+            socket = new WebSocket('ws://localhost:3001');
 
             socket.onerror = e => console.log("[ERROR]", e);
             socket.onmessage =  m => console.log("[MESSAGE]", m);

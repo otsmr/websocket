@@ -5,14 +5,51 @@
 
 #include "WebSocket.h"
 
-#define CLEAR_BUFFER for (size_t i = 0; i < MAX_PACKET_SIZE; i++) \
-                        buffer[i] = '\00';
+#include<iostream>
+#include<string>
+#include<fstream>
 
-WebSocket::WebSocket(int connection) {
+#define CLEAR_BUFFER for (size_t i = 0; i < MAX_PACKET_SIZE; i++) buffer[i] = '\00';
+
+WebSocket::WebSocket(int connection)
+{
     m_connection = connection;
 }
+WebSocket::~WebSocket() {
 
-void WebSocket::listen() {
+}
+
+void WebSocket::handle_frame(DataFrame frame)
+{
+
+    if (frame.opcode == DataFrame::Opcode::ConectionClose) {
+        std::cout << "Client want to close\n";
+        return;
+    }
+
+    if (frame.opcode > DataFrame::Opcode::BinaryFrame) {
+        std::cout << "frame.opcode NOT IMPLEMEMTED: (" << frame.opcode << ")  \n";
+        return;
+    }
+
+    m_framequeue.push_back(frame);
+
+    if (frame.fin == DataFrame::Bool::NotSet)
+        return;
+
+    std::string message;
+
+    for (DataFrame& frame : m_framequeue)
+        message += frame.get_utf8_string();
+
+    std::cout << "[WebSocket " << m_connection << "] Message: " << message << "\n";
+
+    m_framequeue.clear();    
+
+}
+
+void WebSocket::listen()
+{
 
     std::cout << "[WebSocket " << m_connection << "] open\n";
 
@@ -20,6 +57,8 @@ void WebSocket::listen() {
 
     uint8_t buffer[MAX_PACKET_SIZE];
     DataFrame last_frame;
+
+    int offset;
 
     while (
         auto bytesRead = read(m_connection, buffer, MAX_PACKET_SIZE) > 0 &&
@@ -38,58 +77,46 @@ void WebSocket::listen() {
 
         }
 
+        offset = 0;  
+
         if (m_state == State::InDataPayload) {
 
-            last_frame.add_payload_data(buffer);
+            offset = last_frame.add_payload_data(buffer);
 
-            if (last_frame.payload_full()) {
-                if (last_frame.fin == DataFrame::Bool::Set) {
-                    m_state = State::Connected;
-                } else {
-                    m_state = State::WaitingForFinFrame;
-                }
+            if (last_frame.payload_full() == 0) {
+                CLEAR_BUFFER
+                continue;
             }
 
-            CLEAR_BUFFER
-            continue;
-        }
-        
-
-        DataFrame frame = DataFrame::parse_raw_frame(buffer);
-        CLEAR_BUFFER
-
-        if (frame.opcode == DataFrame::Opcode::ConectionClose)
-            std::cout << "Client want to close\n";
-
-        if (frame.opcode > DataFrame::Opcode::BinaryFrame) {
-            std::cout << "NOT IMPLEMEMTED; \n";
-            continue;
-        }
-
-        if (m_state == State::WaitingForFinFrame) {
-
-            last_frame.add_fragmented_frame(frame);
-            if (frame.fin == DataFrame::Bool::Set) {
+            if (last_frame.payload_full() == 1) {
                 m_state = State::Connected;
+                handle_frame(last_frame);
             }
 
-        } 
+            int is_frame = 0;
+            for (int i = offset; i < MAX_PACKET_SIZE; i++)
+                if (buffer[i] != '\00') {
+                    is_frame = 1;
+                    break;
+                }
 
-        if (frame.fin == DataFrame::Bool::NotSet) {
-            m_state = State::WaitingForFinFrame;
-            std::cout << "fragmented message\n";
+            if (is_frame == 0) {
+                CLEAR_BUFFER
+                continue;
+            }
+    
+        }
+
+        DataFrame frame = DataFrame::parse_raw_frame(buffer+offset, (int) MAX_PACKET_SIZE-offset);
+        CLEAR_BUFFER
+        
+        if (frame.payload_full() == 0) {
+            last_frame = frame;
+            m_state = State::InDataPayload;
             continue;
         }
 
-        
-        if (frame.opcode == DataFrame::Opcode::TextFrame) {
-            std::cout << "DATEN: " << frame.text_data << "\n";
-        }
-
-        if (frame.opcode == DataFrame::Opcode::BinaryFrame) {
-            std::cout << "-- Binary --\n";
-        }
-        // send(m_connection, buffer, 255, 0);        
+        handle_frame(frame);
         
     }
 
