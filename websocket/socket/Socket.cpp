@@ -60,13 +60,9 @@ int Socket::listen (int async) {
     }
 
     int *sockfd = &m_sockfd;
-    int *max_connections = &m_max_connections;
-    int *current_connections = &m_current_connections;
     State *state = &m_state;
 
     auto connect = [=]() {
-
-        std::vector<WebSocket *> connections;
 
         while (1) {
 
@@ -80,55 +76,59 @@ int Socket::listen (int async) {
 
             if (*state != Socket::State::Running) {
 
-                std::cout << "Stopping WebSockets\n";
+                // std::cout << "Stopping WebSockets\n";
 
-                for (WebSocket * connection : connections)
-                    connection->close();
+                // for (WebSocket * connection : connections)
+                //     connection->close();
 
-                int run = 1;
-                while (run)
-                {
-                    run = 0;
-                    for (WebSocket *connection : connections)
-                        if (connection->state() != WebSocket::State::Disconnected)
-                            run = 1;
-                    sleep(1); 
-                }
+                // int run = 1;
+                // while (run)
+                // {
+                //     run = 0;
+                //     for (WebSocket *connection : connections)
+                //         if (connection->state() != WebSocket::State::Disconnected)
+                //             run = 1;
+                //     sleep(1); 
+                // }
 
-                for (WebSocket *connection : connections)
-                    connection->~WebSocket();
+                // for (WebSocket *connection : connections)
+                //     connection->~WebSocket();
 
-                std::cout << "WebSockets stoppend\n";
+                // std::cout << "WebSockets stoppend\n";
 
                 *state = State::Stopped;
                 return;
             }
 
-            int free_con = -1;
+            // int free_con = -1;
 
-            for(int i = 0; i < connections.size(); i++) {
-                if (connections[i]->state() == WebSocket::State::Disconnected) {
-                    free_con = i;
-                    break;
-                }
-            }
+            // for(int i = 0; i < connections.size(); i++) {
+            //     if (connections[i]->state() == WebSocket::State::Disconnected) {
+            //         free_con = i;
+            //         break;
+            //     }
+            // }
 
-            if (free_con == -1 && *max_connections <= *current_connections) {
-                std::cout << "Maximum number of connections reached.\n";
-                close(connection);
-                continue;
-            }
+            // if (free_con == -1 && *max_connections <= *current_connections) {
+            //     std::cout << "Maximum number of connections reached.\n";
+            //     close(connection);
+            //     continue;
+            // }
 
 
             WebSocket * webSocket = new WebSocket (connection);       
 
-            if (free_con > -1) {
-                connections[free_con]->~WebSocket();
-                *connections[free_con] = *webSocket;
-            } else {
-                (*current_connections)++;
-                connections.push_back(webSocket);
-            }
+            // if (free_con > -1) {
+                // ???
+                // main(40456,0x16d253000) malloc: *** error for object 0x60000126c000: pointer being freed was not allocated
+                // main(40456,0x16d253000) malloc: *** set a breakpoint in malloc_error_break to debug
+                // ./build.sh: line 20: 40456 Abort trap: 6           ./build/main
+            //     connections[free_con]->~WebSocket();
+            //     *connections[free_con] = *webSocket;
+            // } else {
+            //     (*current_connections)++;
+            //     connections.push_back(webSocket);
+            // }
 
             std::thread ([&]() {
                 webSocket->listen();

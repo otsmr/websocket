@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string>
 #include <iostream>
+#include <vector>
 #include <cstring>
 
 #define MAX_PACKET_SIZE 4096
@@ -53,16 +54,15 @@ public:
     // zero, in which case the payload length is the length of the
     // "Application data"
     uint64_t payload_len_bytes = 0; // max 64 bits in length
-    uint64_t payload_already_received = 0;
-    int payload_full() { return ((payload_len_bytes - payload_already_received) == 0) ? 1 : 0; }
+    int payload_full() { return ((payload_len_bytes - application_data.size()) == 0) ? 1 : 0; }
     
-    uint32_t masking_key;
+    uint8_t masking_key[4];
 
-    uint8_t *extensions_data;
-    uint8_t *application_data;
+    std::vector<uint8_t> extensions_data;
+    std::vector<uint8_t> application_data;
 
     std::string get_utf8_string() {
-        std::string s(application_data, application_data+payload_already_received);
+        std::string s(application_data.begin(), application_data.end());
         return s;
     }
 

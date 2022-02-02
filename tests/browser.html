@@ -9,6 +9,10 @@
 <body>
 
     <p>Status: <span id="state">Disconnected</span></p>
+    <select id="port">
+        <option value="3001" selected>3001</option>
+        <option value="8080">8080</option>
+    </select>
     <button onclick="connect()">Connect</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
@@ -26,12 +30,12 @@
             if (socket === null)
                 return;
             state.innerText = "Disconnecting...";
-            socket.close();
+            socket.close(); 
         }
         function big () {
             let message = "";
             let count = 0;
-            for (let i = 0; i < 700000; i++) {
+            for (let i = 0; i < 1000000; i++) {
                 if ((i % 26) == 0 && i > 0) {
                     message += " (" + String(message.length) + ")\n";
                 }
@@ -57,7 +61,7 @@
 
         function connect () {
             state.innerText = "Connecting...";
-            socket = new WebSocket('ws://localhost:3001');
+            socket = new WebSocket('ws://localhost:' + port.value);
 
             socket.onerror = e => console.log("[ERROR]", e);
             socket.onmessage =  m => console.log("[MESSAGE]", m);

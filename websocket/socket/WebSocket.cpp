@@ -39,10 +39,24 @@ void WebSocket::handle_frame(DataFrame frame)
 
     std::string message;
 
-    for (DataFrame& frame : m_framequeue)
-        message += frame.get_utf8_string();
+    std::cout << "[WebSocket " << m_connection << "] Message ( ";
 
-    std::cout << "[WebSocket " << m_connection << "] Message: " << message << "\n";
+    for (DataFrame& frame : m_framequeue) {
+        std::cout << frame.payload_len_bytes << " ";
+        message += frame.get_utf8_string();
+    }
+
+    std::string msg = "";
+    for (size_t i = 0; i < ((message.size() > 10) ? 10 : message.size()); i++)
+        msg += message.at(i);
+
+    if (message.size() > 10) {
+        msg += "...";
+        for (size_t i = message.size()-10; i < message.size()-1; i++)
+            msg += message.at(i);
+    }
+
+    std::cout << ") " << msg << "\n";
 
     m_framequeue.clear();    
 

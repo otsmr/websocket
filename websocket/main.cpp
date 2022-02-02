@@ -23,12 +23,18 @@ int main () {
 
     // });
 
-    if (socket.listen(1) == 1)
-        return 1;
+    if (socket.listen(1) == 1) {
+        Socket s(8080, 10);
+        if (s.listen(1) == 1)
+            return 1;
+        socket = s;
+    }
 
-    while(option != 's') {
+    std::cout << "Port: " << socket.port() << "\n";
 
-        std::cout << "Optionen (s)>"; 
+    while (option != 's') {
+
+        std::cout << "Optionen: \n"; 
 
         std::cin >> option;
         switch (option)

@@ -1,0 +1,3 @@
+main(40456,0x16d253000) malloc: *** error for object 0x60000126c000: pointer being freed was not allocated
+main(40456,0x16d253000) malloc: *** set a breakpoint in malloc_error_break to debug
+./build.sh: line 20: 40456 Abort trap: 6           ./build/main

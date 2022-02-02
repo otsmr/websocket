@@ -32,6 +32,8 @@ public:
     int listen(int async);
     void stop();
 
+    int port() { return m_port; }
+
 private:
 
     State m_state { State::Running };

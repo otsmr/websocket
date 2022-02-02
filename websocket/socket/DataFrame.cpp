@@ -14,19 +14,18 @@ DataFrame::~DataFrame ()
 
 size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE]) {
 
-    uint64_t copybytes = (uint64_t) payload_len_bytes - payload_already_received;
+    uint64_t copybytes = (uint64_t) payload_len_bytes - application_data.size();
+
     if (copybytes > MAX_PACKET_SIZE)
         copybytes = MAX_PACKET_SIZE;
 
-    uint64_t index;
-    for (uint64_t i = 0; i < copybytes; i++) {
-        index = i + payload_already_received;
-        buffer[i] = buffer[i] ^ (masking_key) >> ((index % 4) * 8);
-    }
+    uint64_t index = application_data.size();
 
-    memcpy(application_data+payload_already_received, buffer, copybytes);
+    for (uint64_t i = 0; i < copybytes; i++)
+        buffer[i] = buffer[i] ^ masking_key[(index + i) % 4];
 
-    payload_already_received += copybytes;
+    for (uint64_t i = 0; i < copybytes; i++)
+        application_data.push_back(buffer[i]);
 
     return (size_t) copybytes;
 
@@ -58,6 +57,7 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer
      +---------------------------------------------------------------+ */
 
     DataFrame frame;
+    int i;
 
     frame.fin = (buffer[0] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
 
@@ -95,16 +95,6 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer
 
     }
 
-
-    // If 127, the following 8 bytes interpreted as a 64-bit unsigned integer (the
-    // most significant bit MUST be 0) are the payload length.  
-    
-    // Multibyte
-    // length quantities are expressed in network byte order.  Note that
-    // in all cases, the minimal number of bytes MUST be used to encode
-    // the length, for example, the length of a 124-byte-long string
-    // can't be encoded as the sequence 126, 0, 124.  
-
     if (frame.payload_len_bytes == 127) {
 
         std::cout << "Extended Extended payload lenght\n";
@@ -114,23 +104,20 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer
             buffer[header_end] = 0;
         }
 
-        frame.payload_len_bytes = (uint64_t) buffer[header_end]   << 56;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+1] << 48;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+2] << 40;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+3] << 32;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+4] << 24;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+5] << 16;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+6] <<  8;
-        frame.payload_len_bytes += (uint64_t) buffer[header_end+7]      ;
+        frame.payload_len_bytes = 0;
+
+        for (i = 0; i < 8; i++)
+            frame.payload_len_bytes += (uint64_t) buffer[header_end+i] << (8*(7-i));
+        
         header_end += 8;
 
     }
 
     if (frame.mask == DataFrame::Bool::Set) {
-        frame.masking_key  = (buffer[header_end+0] & 0xff);
-        frame.masking_key += (buffer[header_end+1] & 0xff) <<  8;
-        frame.masking_key += (buffer[header_end+2] & 0xff) << 16;
-        frame.masking_key += (buffer[header_end+3] & 0xff) << 24;
+        
+        for (i = 0; i < 4; i++)
+            frame.masking_key[i] = buffer[header_end+i];
+
         header_end += 4;
     }
 
@@ -140,32 +127,14 @@ DataFrame DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer
 
     if (frame.mask == DataFrame::Bool::Set) {
 
-        /* 
-         * Octet i of the transformed data ("transformed-octet-i") is the XOR of
-         * octet i of the original data ("original-octet-i") with octet at index
-         * i modulo 4 of the masking key ("masking-key-octet-j"):
-         *      j                   = i MOD 4
-         *      transformed-octet-i = original-octet-i XOR masking-key-octet-j
-         */
-
-
         for (uint64_t i = 0; i < copybytes; i++)
-            buffer[header_end+i] = buffer[header_end+i] ^ (frame.masking_key) >> ((i % 4) * 8);
+            buffer[header_end+i] = buffer[header_end+i] ^ frame.masking_key[i % 4];
 
     }
 
-    frame.application_data = (uint8_t *) calloc(frame.payload_len_bytes, sizeof(uint8_t));
-    if (frame.application_data == NULL) {
-        std::cout << "ERROR calloc\n";
-        std::cout << "frame.payload_len_bytes=" << frame.payload_len_bytes << "\n";
-        exit(1);
-        return frame;
-    }
+    for (uint64_t i = 0; i < copybytes; i++)
+        frame.application_data.push_back(buffer[header_end+i]);
 
-    
-    memcpy(frame.application_data, buffer+header_end, copybytes);
-
-    frame.payload_already_received = copybytes;
 
     return frame;
 
