@@ -7,6 +7,7 @@
 
 #include<iostream>
 #include<string>
+#include <stdio.h>
 #include<fstream>
 
 #define CLEAR_BUFFER for (size_t i = 0; i < MAX_PACKET_SIZE; i++) buffer[i] = '\00';
@@ -91,7 +92,35 @@ void WebSocket::listen()
 
         }
 
-        offset = 0;  
+        std::fstream f;
+        f.open("buffer.txt", std::ios::app);
+        int j;
+        for (size_t i = 0; i < MAX_PACKET_SIZE; i++)
+        {
+            if (i < (MAX_PACKET_SIZE-17)) {
+                for (j = i; j < (i+17); j++) {
+                    if (buffer[j] != '\00')
+                        break;
+                }
+                if (j > i+15) {
+                    f << " [ 0x00 * " << (MAX_PACKET_SIZE) - i << " ]";
+                    break;
+                }
+            }
+            char hex[4];
+            snprintf(hex, 4, "%02x", buffer[i]);
+            f << hex[0] << hex[1];
+            if ((i+1) % 4 == 0)
+                f << " ";
+            if ((i+1) % (4*8) == 0)
+                f << "\n";
+        }
+
+        f << "\n----------------------------------------------------- \n";
+        
+        f.close();
+
+        offset = 0;
 
         if (m_state == State::InDataPayload) {
 
