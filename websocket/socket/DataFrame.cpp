@@ -58,6 +58,54 @@ size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, 
 
 }
 
+std::vector<uint8_t> DataFrame::get_raw_frame() {
+
+    std::vector<uint8_t> raw_frame;
+
+    uint8_t tmp;
+    tmp = m_fin << 7;
+    tmp |= m_rsv << 4;
+    tmp |= m_opcode;
+    raw_frame.push_back(tmp);
+
+    tmp = m_mask << 7; // not masked
+    if (m_application_data.size() > 65536) {
+        // 16 bit => 
+        tmp |= 127;
+        raw_frame.push_back(tmp);
+        uint64_t size = m_application_data.size();
+
+        for (size_t i = 7; i >= 0; i--)
+        {
+            tmp = size >> (i*8);
+            raw_frame.push_back(tmp);
+        }
+
+    }
+    else if (m_application_data.size() > 126) {
+        tmp |= 126;
+        raw_frame.push_back(tmp);
+        uint16_t size = m_application_data.size();
+
+        for (size_t i = 1; i >= 0; i--)
+        {
+            tmp = size >> (i*8);
+            raw_frame.push_back(tmp);
+        }
+        
+    } else {
+        
+        tmp |= m_application_data.size();
+    }
+    raw_frame.push_back(tmp);
+    for (uint8_t& byte : m_application_data) {
+        raw_frame.push_back(byte);
+    }
+    
+    return raw_frame;
+
+}
+
 int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size) {
     
     /*

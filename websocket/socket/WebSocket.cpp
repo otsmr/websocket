@@ -59,7 +59,47 @@ void WebSocket::handle_frame(DataFrame frame)
 
     std::cout << ") " << msg << "\n";
 
-    m_framequeue.clear();    
+    m_framequeue.clear();
+
+    DataFrame res = create_frame_from_text("hello back");
+
+    std::vector<uint8_t> raw_res = res.get_raw_frame();
+
+    std::fstream f;
+    f.open("buffer.txt", std::ios::app);
+
+    f << "\n";
+
+    for (size_t i = 0; i < raw_res.size(); i++)
+    {
+        char hex[4];
+        snprintf(hex, 4, "%02x", raw_res.at(i));
+        f << hex[0] << hex[1];
+        if ((i+1) % 4 == 0)
+            f << " ";
+        if ((i+1) % (4*8) == 0)
+            f << "\n";
+    }
+
+    f.close();
+    send(m_connection, raw_res.data(), raw_res.size(), 0);
+
+}
+
+DataFrame WebSocket::create_frame_from_text(std::string text) {
+
+    DataFrame frame;
+
+    frame.m_fin = DataFrame::Set;
+    frame.m_mask = DataFrame::NotSet;
+    frame.m_rsv = 0;
+    frame.m_opcode = DataFrame::TextFrame;
+    frame.m_payload_len_bytes = text.size();
+
+    std::vector<uint8_t> application_data(text.begin(), text.end());
+    frame.m_application_data = application_data;
+
+    return frame;
 
 }
 
@@ -99,29 +139,29 @@ void WebSocket::listen()
 
         }
 
-        // std::fstream f;
-        // f.open("buffer.txt", std::ios::app);
-        // int j;
-        // for (size_t i = 0; i < bytes_read; i++)
-        // {
-        //     if (i < (bytes_read-17)) {
-        //         for (j = i; j < (i+17); j++) {
-        //             if (buffer[j] != '\00')
-        //                 break;
-        //         }
-        //         if (j > i+15) {
-        //             f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
-        //             break;
-        //         }
-        //     }
-        //     char hex[4];
-        //     snprintf(hex, 4, "%02x", buffer[i]);
-        //     f << hex[0] << hex[1];
-        //     if ((i+1) % 4 == 0)
-        //         f << " ";
-        //     if ((i+1) % (4*8) == 0)
-        //         f << "\n";
-        // }
+        std::fstream f;
+        f.open("buffer.txt", std::ios::app);
+        int j;
+        for (size_t i = 0; i < bytes_read; i++)
+        {
+            if (i < (bytes_read-17)) {
+                for (j = i; j < (i+17); j++) {
+                    if (buffer[j] != '\00')
+                        break;
+                }
+                if (j > i+15) {
+                    f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
+                    break;
+                }
+            }
+            char hex[4];
+            snprintf(hex, 4, "%02x", buffer[i]);
+            f << hex[0] << hex[1];
+            if ((i+1) % 4 == 0)
+                f << " ";
+            if ((i+1) % (4*8) == 0)
+                f << "\n";
+        }
 
     
         offset = 0;
@@ -148,7 +188,7 @@ void WebSocket::listen()
         // f << "\nXXXXXX -> offset = " << offset;
         // f << "\n----------------------------------------------------- \n";
         
-        // f.close();
+        f.close();
 
         DataFrame frame;
 

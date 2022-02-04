@@ -19,7 +19,12 @@
     <button onclick="closeSocket()">Close</button><br /><br />
 
     <textarea id="message" placeholder="Nachricht senden"></textarea> <br />
-    <button onclick="send()" >Senden</button>
+    <button onclick="send()" >Senden</button><br /><br />
+
+    <div style="max-height: 200px; overflow: scroll;border:1px solid black;">
+
+        <pre id="server_messages"></pre>
+    </div>
 
 
     <script>
@@ -64,7 +69,10 @@
             socket = new WebSocket('ws://localhost:' + port.value);
 
             socket.onerror = e => console.log("[ERROR]", e);
-            socket.onmessage =  m => console.log("[MESSAGE]", m);
+            socket.onmessage =  m => {
+                server_messages.innerText = "["+new Date().toString().slice(16, 24)+"] " + m.data + "\n" + server_messages.innerText;
+                console.log("[MESSAGE]", m);
+            };
             socket.onclose = e => {
                 state.innerText = "Disconnected";
                 console.log("[CLOSED]", e.code);

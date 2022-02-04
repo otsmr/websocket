@@ -39,6 +39,7 @@ public:
 
     void handle_frame(DataFrame frame);
     int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
+    DataFrame create_frame_from_text(std::string text);
 
 private:
     State m_state { State::Disconnected };
