@@ -25,6 +25,8 @@ void WebSocket::handle_frame(DataFrame frame)
     {
 
     case DataFrame::ConectionClose:
+        m_close_statuscode = frame.m_application_data[0] << 8;
+        m_close_statuscode += frame.m_application_data[1] & 0xff;
         close(1);
         break;
 
@@ -135,31 +137,32 @@ void WebSocket::listen()
 
             }
 
-            std::fstream f;
-            f.open("buffer.txt", std::ios::app);
-            int j;
-            for (size_t i = 0; i < bytes_read; i++)
-            {
-                if (i < (bytes_read-17)) {
-                    for (j = i; j < (i+17); j++) {
-                        if (buffer[j] != '\00')
-                            break;
-                    }
-                    if (j > i+15) {
-                        f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
-                        break;
-                    }
-                }
-                char hex[4];
-                snprintf(hex, 4, "%02x", buffer[i]);
-                f << hex[0] << hex[1];
-                if ((i+1) % 4 == 0)
-                    f << " ";
-                if ((i+1) % (4*8) == 0)
-                    f << "\n";
-            }
+            // std::fstream f;
+            // f.open("buffer.txt", std::ios::app);
+            // int j;
+            // for (size_t i = 0; i < bytes_read; i++)
+            // {
+            //     if (i < (bytes_read-17)) {
+            //         for (j = i; j < (i+17); j++) {
+            //             if (buffer[j] != '\00')
+            //                 break;
+            //         }
+            //         if (j > i+15) {
+            //             f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
+            //             break;
+            //         }
+            //     }
+            //     char hex[4];
+            //     snprintf(hex, 4, "%02x", buffer[i]);
+            //     f << hex[0] << hex[1];
+            //     if ((i+1) % 4 == 0)
+            //         f << " ";
+            //     if ((i+1) % (4*8) == 0)
+            //         f << "\n";
+            // }
+            // f << "\n----------------------------------------------------- \n";
+            // f.close();
 
-        
             offset = 0;
 
             if (m_state == State::InDataPayload) {
@@ -181,18 +184,13 @@ void WebSocket::listen()
         
             }
 
-            // f << "\nXXXXXX -> offset = " << offset;
-            // f << "\n----------------------------------------------------- \n";
-            
-            f.close();
-
             DataFrame frame;
 
             while (offset < bytes_read) {
 
-    // 818af29d c26982f4 ac0ed2ed 01df9cfa  [ 0x00 * 4080 ]
-    // 818ae41a f7199473 997ec46a 34af8a7d 818ada67 1837aa0e 7650fa17 db81b4 [ 0x00 * 4065 ]
-    // 818ab0d9 cebac0b0 a0dd90a9 0d0cdebe  [ 0x00 * 4080 ]
+                // 818af29d c26982f4 ac0ed2ed 01df9cfa  [ 0x00 * 4080 ]
+                // 818ae41a f7199473 997ec46a 34af8a7d 818ada67 1837aa0e 7650fa17 db81b4 [ 0x00 * 4065 ]
+                // 818ab0d9 cebac0b0 a0dd90a9 0d0cdebe  [ 0x00 * 4080 ]
 
                 DataFrame current_frame;
                 offset += current_frame.parse_raw_frame(buffer+offset, (int) bytes_read-offset);
@@ -322,8 +320,12 @@ void WebSocket::close(int close_frame_received) {
         frame.m_opcode = DataFrame::ConectionClose;
         frame.m_payload_len_bytes = 2;
 
-        frame.m_application_data.push_back((m_close_statuscode >> 8));
-        frame.m_application_data.push_back((m_close_statuscode & 0xff));
+        uint16_t statuscode = m_close_statuscode;
+        if (close_frame_received)
+            statuscode = 1000;
+
+        frame.m_application_data.push_back((statuscode >> 8));
+        frame.m_application_data.push_back((statuscode & 0xff));
 
         std::vector<uint8_t> raw_res = frame.get_raw_frame();
         send(m_connection, raw_res.data(), raw_res.size(), 0);
@@ -347,7 +349,7 @@ void WebSocket::close(int close_frame_received) {
     }
 
     // Close WebSocket  ...
-    std::cout << "[WebSocket " << m_connection << "] closed\n";
+    std::cout << "[WebSocket " << m_connection << "] closed ("<<m_close_statuscode << ")\n";
     ::close(m_connection);
     m_state = State::Disconnected;
 
