@@ -14,12 +14,12 @@ DataFrame::~DataFrame ()
 
 size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, int buffer_size) {
 
-    uint64_t copybytes = (uint64_t) payload_len_bytes - application_data.size() + offset;
+    uint64_t copybytes = (uint64_t) m_payload_len_bytes - m_application_data.size() + offset;
 
     if (copybytes > (uint64_t) buffer_size)
         copybytes = (uint64_t) buffer_size;
 
-    uint64_t index = application_data.size();
+    uint64_t index = m_application_data.size();
 
     int nulls = 0;
     for (uint64_t i = (uint64_t) offset; i < copybytes; i++) {
@@ -45,12 +45,12 @@ size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, 
             818a3c8a c53b4ce3 ab5c1cfa 068d52ed  [ 0x00 * 4080 ]
             */
 
-        if (mask == Bool::Set) {
+        if (m_mask == Bool::Set) {
             // offset = header_end -> index starts at data payload
-            buffer[i] = buffer[i] ^ masking_key[(index + i - (uint64_t) offset) % 4];
+            buffer[i] = buffer[i] ^ m_masking_key[(index + i - (uint64_t) offset) % 4];
         }
 
-        application_data.push_back(buffer[i]);
+        m_application_data.push_back(buffer[i]);
 
     }
 
@@ -100,19 +100,18 @@ int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size)
 
     int i;
 
-    fin = (buffer[0] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
+    m_fin = (buffer[0] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
 
     if (buffer[0] >> 6 == 0x1)
-        rsv |= DataFrame::RSV::RSV1;
+        m_rsv |= DataFrame::RSV::RSV1;
     if (buffer[0] >> 5 == 0x1)
-        rsv |= DataFrame::RSV::RSV2;
+        m_rsv |= DataFrame::RSV::RSV2;
     if (buffer[0] >> 4 == 0x1)
-        rsv |= DataFrame::RSV::RSV3;
+        m_rsv |= DataFrame::RSV::RSV3;
 
-    uint8_t opcode = buffer[0] & 0b1111;
-    opcode = (DataFrame::Opcode) opcode;
+    m_opcode = (DataFrame::Opcode) (buffer[0] & 0b1111);
 
-    mask = (buffer[1] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
+    m_mask = (buffer[1] >> 7 == 0x0) ? DataFrame::Bool::NotSet : DataFrame::Bool::Set;
 
 
     uint8_t header_end = 2;
@@ -120,23 +119,23 @@ int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size)
     //   The length of the "Payload data", in bytes: if 0-125, that is the
     //   payload length.
 
-    payload_len_bytes = buffer[1] & 0b1111111;
+    m_payload_len_bytes = buffer[1] & 0b1111111;
 
-    if (payload_len_bytes == 126) {
+    if (m_payload_len_bytes == 126) {
 
         // If 126, the following 2 bytes interpreted as a
         // 16-bit unsigned integer are the payload length.
 
         // std::cout << "Extended payload lenght\n";
 
-        payload_len_bytes = (uint16_t) buffer[header_end] << 8;
-        payload_len_bytes += (uint16_t) buffer[header_end+1];
+        m_payload_len_bytes = (uint16_t) buffer[header_end] << 8;
+        m_payload_len_bytes += (uint16_t) buffer[header_end+1];
 
         header_end += 2;
 
     }
 
-    if (payload_len_bytes == 127) {
+    if (m_payload_len_bytes == 127) {
 
         // std::cout << "Extended Extended payload lenght\n";
 
@@ -145,19 +144,19 @@ int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size)
             buffer[header_end] = 0;
         }
 
-        payload_len_bytes = 0;
+        m_payload_len_bytes = 0;
 
         for (i = 0; i < 8; i++)
-            payload_len_bytes += (uint64_t) buffer[header_end+i] << (8*(7-i));
+            m_payload_len_bytes += (uint64_t) buffer[header_end+i] << (8*(7-i));
         
         header_end += 8;
 
     }
 
-    if (mask == DataFrame::Bool::Set) {
+    if (m_mask == DataFrame::Bool::Set) {
         
         for (i = 0; i < 4; i++)
-            masking_key[i] = buffer[header_end+i];
+            m_masking_key[i] = buffer[header_end+i];
 
         header_end += 4;
     }

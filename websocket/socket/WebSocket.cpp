@@ -23,19 +23,19 @@ WebSocket::~WebSocket() {
 void WebSocket::handle_frame(DataFrame frame)
 {
 
-    if (frame.opcode == DataFrame::Opcode::ConectionClose) {
+    if (frame.m_opcode == DataFrame::Opcode::ConectionClose) {
         std::cout << "Client want to close\n";
         return;
     }
 
-    if (frame.opcode > DataFrame::Opcode::BinaryFrame) {
-        std::cout << "frame.opcode NOT IMPLEMEMTED: (" << frame.opcode << ")  \n";
+    if (frame.m_opcode > DataFrame::Opcode::BinaryFrame) {
+        std::cout << "frame.opcode NOT IMPLEMEMTED: (" << frame.m_opcode << ")  \n";
         return;
     }
 
     m_framequeue.push_back(frame);
 
-    if (frame.fin == DataFrame::Bool::NotSet)
+    if (frame.m_fin == DataFrame::Bool::NotSet)
         return;
 
     std::string message;
@@ -43,7 +43,7 @@ void WebSocket::handle_frame(DataFrame frame)
     std::cout << "[WebSocket " << m_connection << "] Message ( ";
 
     for (DataFrame& frame : m_framequeue) {
-        std::cout << frame.payload_len_bytes << " ";
+        std::cout << frame.m_payload_len_bytes << " ";
         message += frame.get_utf8_string();
     }
 
