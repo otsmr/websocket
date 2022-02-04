@@ -75,8 +75,16 @@ void WebSocket::listen()
 
     int offset;
 
+    std::fstream f;
+    f.open("buffer.txt", std::ofstream::out | std::ofstream::trunc);
+    f.close();
+
+    CLEAR_BUFFER;
+
+    ssize_t bytes_read;
+
     while (
-        auto bytesRead = read(m_connection, buffer, MAX_PACKET_SIZE) > 0 &&
+        (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)) > 0 &&
         m_state >= State::WaitingForHandshake) {
 
         if (m_state == State::WaitingForHandshake) {
@@ -87,47 +95,42 @@ void WebSocket::listen()
             }
 
             m_state = State::Connected;
-            CLEAR_BUFFER
             continue;
 
         }
 
-        std::fstream f;
-        f.open("buffer.txt", std::ios::app);
-        int j;
-        for (size_t i = 0; i < MAX_PACKET_SIZE; i++)
-        {
-            if (i < (MAX_PACKET_SIZE-17)) {
-                for (j = i; j < (i+17); j++) {
-                    if (buffer[j] != '\00')
-                        break;
-                }
-                if (j > i+15) {
-                    f << " [ 0x00 * " << (MAX_PACKET_SIZE) - i << " ]";
-                    break;
-                }
-            }
-            char hex[4];
-            snprintf(hex, 4, "%02x", buffer[i]);
-            f << hex[0] << hex[1];
-            if ((i+1) % 4 == 0)
-                f << " ";
-            if ((i+1) % (4*8) == 0)
-                f << "\n";
-        }
+        // std::fstream f;
+        // f.open("buffer.txt", std::ios::app);
+        // int j;
+        // for (size_t i = 0; i < bytes_read; i++)
+        // {
+        //     if (i < (bytes_read-17)) {
+        //         for (j = i; j < (i+17); j++) {
+        //             if (buffer[j] != '\00')
+        //                 break;
+        //         }
+        //         if (j > i+15) {
+        //             f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
+        //             break;
+        //         }
+        //     }
+        //     char hex[4];
+        //     snprintf(hex, 4, "%02x", buffer[i]);
+        //     f << hex[0] << hex[1];
+        //     if ((i+1) % 4 == 0)
+        //         f << " ";
+        //     if ((i+1) % (4*8) == 0)
+        //         f << "\n";
+        // }
 
-        f << "\n----------------------------------------------------- \n";
-        
-        f.close();
-
+    
         offset = 0;
 
         if (m_state == State::InDataPayload) {
 
-            offset = last_frame.add_payload_data(buffer);
+            offset = last_frame.add_payload_data(buffer, 0, bytes_read);
 
             if (last_frame.payload_full() == 0) {
-                CLEAR_BUFFER
                 continue;
             }
 
@@ -136,22 +139,33 @@ void WebSocket::listen()
                 handle_frame(last_frame);
             }
 
-            int is_frame = 0;
-            for (int i = offset; i < MAX_PACKET_SIZE; i++)
-                if (buffer[i] != '\00') {
-                    is_frame = 1;
-                    break;
-                }
-
-            if (is_frame == 0) {
-                CLEAR_BUFFER
+            if (offset == bytes_read) {
                 continue;
             }
     
         }
 
-        DataFrame frame = DataFrame::parse_raw_frame(buffer+offset, (int) MAX_PACKET_SIZE-offset);
-        CLEAR_BUFFER
+        // f << "\nXXXXXX -> offset = " << offset;
+        // f << "\n----------------------------------------------------- \n";
+        
+        // f.close();
+
+        DataFrame frame;
+
+        while (offset < bytes_read) {
+
+// 818af29d c26982f4 ac0ed2ed 01df9cfa  [ 0x00 * 4080 ]
+// 818ae41a f7199473 997ec46a 34af8a7d 818ada67 1837aa0e 7650fa17 db81b4 [ 0x00 * 4065 ]
+// 818ab0d9 cebac0b0 a0dd90a9 0d0cdebe  [ 0x00 * 4080 ]
+
+            DataFrame current_frame;
+            offset += current_frame.parse_raw_frame(buffer+offset, (int) bytes_read-offset);
+            frame = current_frame;
+
+            if (frame.payload_full() == 0)
+                break;
+
+        }
         
         if (frame.payload_full() == 0) {
             last_frame = frame;

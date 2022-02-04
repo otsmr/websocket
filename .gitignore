@@ -2,3 +2,4 @@ build/
 random/
 .vscode/
 .DS_Store
+buffer.txt

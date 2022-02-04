@@ -66,7 +66,7 @@ public:
         return s;
     }
 
-    size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE]);
-    static DataFrame parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], int buffer_size);
+    size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE], int offset, int buffer_size);
+    int parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], int buffer_size);
     
 };
