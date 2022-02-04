@@ -101,6 +101,24 @@ std::vector<uint8_t> DataFrame::get_raw_frame() {
     for (uint8_t& byte : m_application_data) {
         raw_frame.push_back(byte);
     }
+
+    // std::fstream f;
+    // f.open("buffer.txt", std::ios::app);
+
+    // f << "\n";
+
+    // for (size_t i = 0; i < raw_res.size(); i++)
+    // {
+    //     char hex[4];
+    //     snprintf(hex, 4, "%02x", raw_res.at(i));
+    //     f << hex[0] << hex[1];
+    //     if ((i+1) % 4 == 0)
+    //         f << " ";
+    //     if ((i+1) % (4*8) == 0)
+    //         f << "\n";
+    // }
+
+    // f.close();
     
     return raw_frame;
 

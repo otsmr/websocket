@@ -66,12 +66,12 @@
 
         function connect () {
             state.innerText = "Connecting...";
+            server_messages.innerText = "";
             socket = new WebSocket('ws://localhost:' + port.value);
 
             socket.onerror = e => console.log("[ERROR]", e);
             socket.onmessage =  m => {
                 server_messages.innerText = "["+new Date().toString().slice(16, 24)+"] " + m.data + "\n" + server_messages.innerText;
-                console.log("[MESSAGE]", m);
             };
             socket.onclose = e => {
                 state.innerText = "Disconnected";

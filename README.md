@@ -10,9 +10,11 @@ First of all it is **about learning C++ on a project**. The goal is to implement
 - [SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
 - [HTTP-Header parser](https://datatracker.ietf.org/doc/html/rfc2616)
 ### work in progress
-- sockets
 - [the WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)
 ### still to make
+- [extension: permessage-deflate](https://www.rfc-editor.org/rfc/rfc7692.html)
+- [DEFLATE Compressed Data Format](https://www.rfc-editor.org/rfc/rfc1951)
+- [extensions](https://www.iana.org/assignments/websocket/websocket.xhtml)
 - 32 and 64 bit support
 
 # requirements
