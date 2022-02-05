@@ -42,6 +42,7 @@ public:
     State state () { return m_state; };
     int connection () { return m_connection; };
 
+
     void handle_frame(DataFrame frame);
     int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
     DataFrame create_frame_from_text(std::string text);
@@ -55,5 +56,7 @@ private:
     size_t m_pong_status = 0; // 
     uint16_t m_close_statuscode = 1000;
     std::vector<DataFrame> m_framequeue;
+
+    void listen_from_client();
 
 };

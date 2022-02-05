@@ -236,3 +236,32 @@ int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size)
     return add_payload_data(buffer, header_end, buffer_size);
 
 }
+
+DataFrame DataFrame::get_text_frame(std::string string) {
+
+    DataFrame frame;
+
+    frame.m_fin = DataFrame::Set;
+    frame.m_mask = DataFrame::NotSet;
+    frame.m_rsv = 0;
+    frame.m_opcode = DataFrame::TextFrame;
+    frame.m_application_data = std::vector<uint8_t> (string.begin(), string.end());
+    frame.m_payload_len_bytes = frame.m_application_data.size();
+
+    return frame;
+
+}
+
+DataFrame DataFrame::get_ping_frame() {
+
+    DataFrame frame;
+
+    frame.m_fin = DataFrame::Set;
+    frame.m_mask = DataFrame::NotSet;
+    frame.m_rsv = 0;
+    frame.m_opcode = DataFrame::Ping;
+    frame.m_payload_len_bytes = 0;
+
+    return frame;
+
+}

@@ -35,6 +35,68 @@ void Socket::stop() {
 
 }
 
+void Socket::wait_for_connection () {
+
+    auto addrlen = sizeof(m_sockaddr);
+
+    while (1) {
+
+        int connection = accept(m_sockfd, (struct sockaddr*)&m_sockaddr, (socklen_t*)&addrlen);
+        if (connection < 0) {
+            std::cout << "Failed to grab connection. errno: " << errno << std::endl;
+            return;
+        }
+
+        if (m_state != Socket::State::Running) {
+
+            std::cout << "Stopping WebSockets\n";
+
+            // for (WebSocket * connection : connections)
+            //     connection->close();
+
+            // int run = 1;
+            // while (run)
+            // {
+            //     run = 0;
+            //     for (WebSocket *connection : connections)
+            //         if (connection->state() != WebSocket::State::Disconnected)
+            //             run = 1;
+            //     sleep(1); 
+            // }
+
+            // for (WebSocket *connection : connections)
+            //     connection->~WebSocket();
+
+            std::cout << "WebSockets stoppend\n";
+
+            m_state = State::Stopped;
+            return;
+        }
+
+        // int free_con = -1;
+
+        // for(int i = 0; i < connections.size(); i++) {
+        //     if (connections[i]->state() == WebSocket::State::Disconnected) {
+        //         free_con = i;
+        //         break;
+        //     }
+        // }
+
+        // if (free_con == -1 && *max_connections <= *current_connections) {
+        //     std::cout << "Maximum number of connections reached.\n";
+        //     close(connection);
+        //     continue;
+        // }
+
+        std::cout << "connection=" <<  connection << std::endl;
+
+        WebSocket * webSocket = new WebSocket (connection);
+        webSocket->listen();
+        
+    }
+
+}
+
 int Socket::listen (int async) {   
 
     // TODO: AF_INET6
@@ -44,12 +106,11 @@ int Socket::listen (int async) {
         return 1;
     } 
 
-    sockaddr_in sockaddr;
-    sockaddr.sin_family = AF_INET;
-    sockaddr.sin_addr.s_addr = INADDR_ANY;
-    sockaddr.sin_port = htons(m_port); 
+    m_sockaddr.sin_family = AF_INET;
+    m_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    m_sockaddr.sin_port = htons(m_port); 
     
-    if (bind(m_sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
+    if (bind(m_sockfd, (struct sockaddr*)&m_sockaddr, sizeof(m_sockaddr)) < 0) {
         std::cout << "Failed to bind to port " << m_port << ". errno: " << errno << std::endl;
         return 1;
     }
@@ -59,89 +120,12 @@ int Socket::listen (int async) {
         return 1;
     }
 
-    int *sockfd = &m_sockfd;
-    State *state = &m_state;
-
-    auto connect = [=]() {
-
-        while (1) {
-
-            auto addrlen = sizeof(sockaddr);
-        
-            int connection = accept(*sockfd, (struct sockaddr*)&sockaddr, (socklen_t*)&addrlen);
-            if (connection < 0) {
-                std::cout << "Failed to grab connection. errno: " << errno << std::endl;
-                return;
-            }
-
-            if (*state != Socket::State::Running) {
-
-                // std::cout << "Stopping WebSockets\n";
-
-                // for (WebSocket * connection : connections)
-                //     connection->close();
-
-                // int run = 1;
-                // while (run)
-                // {
-                //     run = 0;
-                //     for (WebSocket *connection : connections)
-                //         if (connection->state() != WebSocket::State::Disconnected)
-                //             run = 1;
-                //     sleep(1); 
-                // }
-
-                // for (WebSocket *connection : connections)
-                //     connection->~WebSocket();
-
-                // std::cout << "WebSockets stoppend\n";
-
-                *state = State::Stopped;
-                return;
-            }
-
-            // int free_con = -1;
-
-            // for(int i = 0; i < connections.size(); i++) {
-            //     if (connections[i]->state() == WebSocket::State::Disconnected) {
-            //         free_con = i;
-            //         break;
-            //     }
-            // }
-
-            // if (free_con == -1 && *max_connections <= *current_connections) {
-            //     std::cout << "Maximum number of connections reached.\n";
-            //     close(connection);
-            //     continue;
-            // }
-
-
-            WebSocket * webSocket = new WebSocket (connection);       
-
-            // if (free_con > -1) {
-                // ???
-                // main(40456,0x16d253000) malloc: *** error for object 0x60000126c000: pointer being freed was not allocated
-                // main(40456,0x16d253000) malloc: *** set a breakpoint in malloc_error_break to debug
-                // ./build.sh: line 20: 40456 Abort trap: 6           ./build/main
-            //     connections[free_con]->~WebSocket();
-            //     *connections[free_con] = *webSocket;
-            // } else {
-            //     (*current_connections)++;
-            //     connections.push_back(webSocket);
-            // }
-
-            std::thread ([&]() {
-                webSocket->listen();
-            }).detach();
-            
-        }
-        
-    };
-    
     if (async) {
-        std::thread (connect).detach();
+        std::thread ([&]() {
+            wait_for_connection();
+        }).detach();
     } else {
-        connect();
+        wait_for_connection();
     }
 
     return 0;

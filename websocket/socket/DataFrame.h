@@ -60,6 +60,9 @@ public:
     std::vector<uint8_t> m_extensions_data;
     std::vector<uint8_t> m_application_data;
 
+    static DataFrame get_text_frame(std::string string);
+    static DataFrame get_ping_frame();
+
     std::string get_utf8_string() {
         std::string s(m_application_data.begin(), m_application_data.end());
         return s;

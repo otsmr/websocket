@@ -14,6 +14,8 @@
         <option value="8080">8080</option>
     </select>
     <button onclick="connect()">Connect</button>
+    <input type="number" id="multiple" value="1000" style="width: 60px;">
+    <button onclick="connectMultiple()">Connect multiple</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
     <button onclick="closeSocket()">Close</button><br /><br />
@@ -30,6 +32,23 @@
     <script>
 
         let socket = null;
+
+        function connectMultiple () {
+
+            console.log("Connecting...");
+
+            let sockets = [];
+            for (let i = 0; i < parseInt(multiple.value); i++)
+                sockets.push(new WebSocket('ws://localhost:' + port.value));
+
+            setTimeout(() => {
+                console.log("Closing...");
+                for (const socket of sockets)
+                    socket.close();
+                
+            }, 5000);
+
+        }
 
         function closeSocket() {
             if (socket === null)
@@ -74,8 +93,7 @@
                 server_messages.innerText = "["+new Date().toString().slice(16, 24)+"] " + m.data + "\n" + server_messages.innerText;
             };
             socket.onclose = e => {
-                state.innerText = "Disconnected";
-                console.log("[CLOSED]", e.code);
+                state.innerText = "Disconnected (" + e.code + ")";
                 socket = null;
             };
             socket.onopen = _ => {

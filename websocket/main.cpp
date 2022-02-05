@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "socket/Socket.h"
 
@@ -12,7 +13,9 @@
 int main () {
 
     char option = 0;
-    Socket socket(3001, 10);
+    Socket socket(3001, 10000);
+
+    std::cout << "hardware_concurrency() = "<< std::thread::hardware_concurrency() << "\n";
 
     // socket.on("connection", [socket](WebSocket *ws) {
     //     std::cout << "Neue Verbindung [" << ws->connection() << "]\n";

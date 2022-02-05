@@ -38,8 +38,11 @@ private:
 
     State m_state { State::Running };
     int m_max_connections = 10000;
+    sockaddr_in m_sockaddr;
     int m_current_connections = 0;
     int m_sockfd = -1;
     int m_port = 9090;
+
+    void wait_for_connection();
 
 };
