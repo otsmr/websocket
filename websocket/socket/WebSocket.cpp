@@ -25,8 +25,10 @@ void WebSocket::handle_frame(DataFrame frame)
     {
 
     case DataFrame::ConectionClose:
-        m_close_statuscode = frame.m_application_data[0] << 8;
-        m_close_statuscode += frame.m_application_data[1] & 0xff;
+        if (frame.m_payload_len_bytes > 2) {
+            m_close_statuscode = frame.m_application_data.at(0) << 8;
+            m_close_statuscode += frame.m_application_data.at(1) & 0xff;
+        }
         close(1);
         break;
 
