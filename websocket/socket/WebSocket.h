@@ -34,18 +34,17 @@ public:
         InDataPayload,
     };
 
-    WebSocket(int connection);
+    explicit WebSocket(int connection);
     ~WebSocket();
 
     void listen();
     void close(int close_frame_received);
     State state () { return m_state; };
-    int connection () { return m_connection; };
+    int connection () const { return m_connection; };
 
 
     void handle_frame(DataFrame frame);
     int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
-    DataFrame create_frame_from_text(std::string text);
 
 private:
     State m_state { State::Disconnected };

@@ -16,7 +16,7 @@ void Socket::stop() {
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0); // AF_INET6
 
-    sockaddr_in sockaddr;
+    sockaddr_in sockaddr{};
     sockaddr.sin_family = AF_INET;
     sockaddr.sin_addr.s_addr = INADDR_ANY;
     sockaddr.sin_port = htons(m_port); 
@@ -90,8 +90,12 @@ void Socket::wait_for_connection () {
 
         std::cout << "connection=" <<  connection << std::endl;
 
-        WebSocket * webSocket = new WebSocket (connection);
+        auto * webSocket = new WebSocket (connection);
         webSocket->listen();
+
+        if (on_open != nullptr) {
+            on_open(webSocket);
+        }
         
     }
 

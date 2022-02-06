@@ -32,13 +32,17 @@ public:
     int listen(int async);
     void stop();
 
-    int port() { return m_port; }
+    int port() const { return m_port; };
+
+    // use std::shared_ptr ??
+    std::function<void(WebSocket *)> on_open = nullptr;
+
 
 private:
 
     State m_state { State::Running };
     int m_max_connections = 10000;
-    sockaddr_in m_sockaddr;
+    sockaddr_in m_sockaddr{};
     int m_current_connections = 0;
     int m_sockfd = -1;
     int m_port = 9090;

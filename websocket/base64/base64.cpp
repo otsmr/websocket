@@ -49,7 +49,7 @@ void base64_decode (char *input, uint8_t **output, size_t *length) {
     
 }
 
-void base64_encode (uint8_t *input, char **output, size_t length) {
+void base64_encode (const uint8_t *input, char **output, size_t length) {
 
     *output = (char *) calloc(ceil(length * (4/3) + 1), sizeof(size_t));
 
@@ -89,7 +89,7 @@ void base64_encode (uint8_t *input, char **output, size_t length) {
 
     }
 
-    for (i = 0; i < ( 3 - (length%3) ) % 3; i++)
+    for (i = 0; i < (char) ( 3 - (length%3) ) % 3; i++)
         *(out-i-1) = '=';
 
     *out = '\00';

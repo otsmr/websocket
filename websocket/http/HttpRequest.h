@@ -31,7 +31,7 @@ public:
     ~HttpRequest();
 
     std::vector<Header> headers() { return m_headers; };
-    Header get_header(std::string name);
+    Header get_header(const std::string& name);
 
     Method method() const { return m_method; }
     Url url() const { return m_url; }

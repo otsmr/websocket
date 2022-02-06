@@ -38,7 +38,7 @@ public:
         RSV2 = 0b10,
         RSV3 = 0b100
     };
-    uint8_t m_rsv;
+    uint8_t m_rsv{};
     enum Opcode {
         ContinuationFrame = 0x0,
         TextFrame = 0x1,
@@ -55,7 +55,7 @@ public:
     // "Application data"
     uint64_t m_payload_len_bytes = 0; // max 64 bits in length
     
-    uint8_t m_masking_key[4];
+    uint8_t m_masking_key[4]{};
 
     std::vector<uint8_t> m_extensions_data;
     std::vector<uint8_t> m_application_data;
@@ -68,9 +68,9 @@ public:
         return s;
     }
 
-    int payload_full() { return ((m_payload_len_bytes - m_application_data.size()) == 0) ? 1 : 0; }
-    size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE], int offset, int buffer_size);
-    int parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], int buffer_size);
+    int payload_full() const { return ((m_payload_len_bytes - m_application_data.size()) == 0) ? 1 : 0; }
+    size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE], int offset, size_t buffer_size);
+    int parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], size_t buffer_size);
     std::vector<uint8_t> get_raw_frame();
     
 };

@@ -9,15 +9,13 @@ WebSocket::WebSocket(int connection)
 {
     m_connection = connection;
 }
-WebSocket::~WebSocket() {
-
-}
+WebSocket::~WebSocket() = default;
 
 void WebSocket::handle_frame(DataFrame frame)
 {
 
     std::string message;
-    std::string msg = "";
+    std::string msg;
     DataFrame pong_frame;
     std::vector<uint8_t> raw_frame;
 
@@ -59,8 +57,8 @@ void WebSocket::handle_frame(DataFrame frame)
 
         std::cout << "[WebSocket " << m_connection << "] Message: ";
 
-        for (DataFrame& frame : m_framequeue)
-            message += frame.get_utf8_string();
+        for (DataFrame& f : m_framequeue)
+            message += f.get_utf8_string();
 
         for (size_t i = 0; i < ((message.size() > 50) ? 10 : message.size()); i++)
             msg += message.at(i);
@@ -90,14 +88,14 @@ void WebSocket::listen_from_client() {
     uint8_t buffer[MAX_PACKET_SIZE];
     DataFrame last_frame;
 
-    int offset;
+    size_t offset;
 
     // clean file
     // std::fstream f;
     // f.open("buffer.txt", std::ofstream::out | std::ofstream::trunc);
     // f.close();
 
-    ssize_t bytes_read;
+    size_t bytes_read;
 
     while (
         (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)) > 0 &&
@@ -171,7 +169,7 @@ void WebSocket::listen_from_client() {
             // 818ab0d9 cebac0b0 a0dd90a9 0d0cdebe  [ 0x00 * 4080 ]
 
             DataFrame current_frame;
-            offset += current_frame.parse_raw_frame(buffer+offset, (int) bytes_read-offset);
+            offset += current_frame.parse_raw_frame(buffer+offset, bytes_read-offset);
             frame = current_frame;
 
             if (frame.payload_full() == 0)
@@ -254,7 +252,7 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
     uint8_t hash[20];
     sha1((uint8_t *) sec_key.c_str(), hash, sec_key.size());
 
-    char * output = NULL;
+    char * output = nullptr;
     base64_encode(hash, &output, 20);
 
     HTTP::HttpResponse response;
@@ -280,7 +278,7 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
 
 void WebSocket::close(int close_frame_received) {
 
-    if (State::Disconnected)
+    if (m_state == State::Disconnected)
         return;
 
     if (m_state != State::Closing) {

@@ -8,13 +8,11 @@
 namespace HTTP {
     
 HttpRequest::HttpRequest()
-{
-}
+= default;
 HttpRequest::~HttpRequest()
-{
-}
+= default;
 
-HttpRequest::Header HttpRequest::get_header (std::string name)
+HttpRequest::Header HttpRequest::get_header (const std::string& name)
 {
     for (const HTTP::HttpRequest::Header& h : m_headers)
         if (h.name == name)
@@ -44,15 +42,15 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
     
     size_t index = 0;
 
-    std::string method = "";
-    std::string resource = "";
-    std::string protocol = "";
+    std::string method;
+    std::string resource;
+    std::string protocol;
 
     std::vector<uint8_t> buffer;
 
     auto commit = [&](auto& output, State new_state) {
-        for (int i=0;  i < buffer.size(); i++)
-            output.push_back(buffer.at(i));
+        for (unsigned char & i : buffer)
+            output.push_back(i);
         buffer.clear();
         state = new_state;
         index++;

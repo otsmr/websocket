@@ -15,16 +15,16 @@ int main () {
     char option = 0;
     Socket socket(3001, 10000);
 
-    std::cout << "hardware_concurrency() = "<< std::thread::hardware_concurrency() << "\n";
+    socket.on_open = [&](WebSocket *ws) {
 
-    // socket.on("connection", [socket](WebSocket *ws) {
-    //     std::cout << "Neue Verbindung [" << ws->connection() << "]\n";
+        std::cout << "Neue Verbindung [" << ws->connection() << "]\n";
 
-    //     ws->on("message", [=](std::string message) {
-    //         std::cout << "Message von [" << ws->connection() << "] :" << message << "\n";
-    //     });
+    //     // ws->on("message", [=](std::string message) {
+    //     //     std::cout << "Message von [" << ws->connection() << "] :" << message << "\n";
+    //     // });
 
-    // });
+    };
+
 
     if (socket.listen(1) == 1) {
         Socket s(8080, 10);

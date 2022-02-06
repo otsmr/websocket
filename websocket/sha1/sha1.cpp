@@ -4,7 +4,7 @@
  */
 
 #include "sha1.h"
-#include <stdint.h>
+#include <cstdint>
 
 #define S(word, bits) \
             (((word) << (bits)) | ((word) >> (32-(bits))))
@@ -13,7 +13,7 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
 
     int t;
     int wcount;
-    uint8_t *message = NULL;
+    uint8_t *message = nullptr;
     uint32_t A, B, C, D, E;
     uint32_t f;
     uint32_t tmp;
@@ -95,7 +95,7 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
         for (t = 0; t <= 79; t++)
         {
             // 5. Functions and Constants Used
-            char tt = t/20; 
+            unsigned char tt = t/20;
             if (tt == 0)
                 f = (B & C) | ((~B) & D);
             else if (tt == 1 || tt == 3)

@@ -9,7 +9,6 @@ namespace HTTP {
 
 class Url {
 public:
-    std::string href() { return protocol + host + path + query; };
     std::string protocol = "http://";
     std::string host;
     std::string path;

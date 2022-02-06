@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
 
 #ifdef __linux__
 typedef u_int8_t uint8_t;

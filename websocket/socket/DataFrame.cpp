@@ -5,14 +5,10 @@
 
 #include "DataFrame.h"
 
-DataFrame::DataFrame ()
-{
-}
-DataFrame::~DataFrame ()
-{
-}
+DataFrame::DataFrame () = default;
+DataFrame::~DataFrame () = default;
 
-size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, int buffer_size) {
+size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, size_t buffer_size) {
 
     uint64_t copybytes = (uint64_t) m_payload_len_bytes - m_application_data.size() + offset;
 
@@ -124,7 +120,7 @@ std::vector<uint8_t> DataFrame::get_raw_frame() {
 
 }
 
-int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], int buffer_size) {
+int DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], size_t buffer_size) {
     
     /*
       0                   1                   2                   3

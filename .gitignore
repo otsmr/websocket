@@ -2,3 +2,5 @@ build/
 .vscode/
 .DS_Store
 buffer.txt
+cmake-build-debug/
+.idea

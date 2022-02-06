@@ -4,6 +4,7 @@
 #include <thread>
 #include <stdio.h>
 #include <unistd.h>
+#include <iostream>
 
 using namespace std;
 
@@ -24,15 +25,14 @@ private:
     int m_state = 0;
 };
 
-int main() {
-
+void test_shared_memory() {
     Obj stackObj;
     Obj *heapObj = new Obj();
 
     printf("\n");
 
-    printf("main: heapObj->x (%x) = %d\n", &heapObj, heapObj->state());
-    printf("main: stackObj.x (%x) = %d\n", &stackObj, stackObj.state());
+    printf("main: heapObj->x = %d\n", heapObj->state());
+    printf("main: stackObj.x = %d\n", stackObj.state());
 
     thread ([&]() {
 
@@ -40,16 +40,35 @@ int main() {
         stackObj.run();
         sleep(1);
 
-        printf("thread: heapObj->x (%x) = %d\n", &heapObj, heapObj->state());
-        printf("thread: stackObj.x (%x) = %d\n", &stackObj, stackObj.state());
+        printf("thread: heapObj->x = %d\n", heapObj->state());
+        printf("thread: stackObj.x = %d\n", stackObj.state());
 
     }).detach();
 
     sleep(3);
     
-    printf("main: heapObj->x (%x) = %d\n", &heapObj, heapObj->state());
-    printf("main: stackObj.x (%x) = %d\n", &stackObj, stackObj.state());
+    printf("main: heapObj->x = %d\n", heapObj->state());
+    printf("main: stackObj.x = %d\n", stackObj.state());
 
     printf("main thread: close();\n");
+}
+
+int main() {
+
+    // test_shared_memory();
+
+
+    for (size_t i = 0; i < 1000; i++)
+    {
+        thread([=]() {
+            std::cout << "start: " << i << "\n";
+            sleep(10);
+        }).detach();
+    }
+    
+    sleep(20);
+
+    return 0;
+
 
 }
