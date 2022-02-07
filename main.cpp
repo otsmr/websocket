@@ -7,17 +7,16 @@
 #include <string>
 #include <thread>
 
-#include "socket/Socket.h"
-
+#include "Socket.h"
 
 int main () {
 
     char option = 0;
-    Socket socket(3001, 10000);
+    Socket socket(3001);
 
     socket.on_open = [&](WebSocket *ws) {
 
-        std::cout << "Neue Verbindung [" << ws->connection() << "]\n";
+        // std::cout << "Neue Verbindung [" << ws->connection() << "]\n";
 
     //     // ws->on("message", [=](std::string message) {
     //     //     std::cout << "Message von [" << ws->connection() << "] :" << message << "\n";

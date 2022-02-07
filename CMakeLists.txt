@@ -17,17 +17,17 @@ find_package(Threads REQUIRED)
 add_executable(main
   main.cpp
 
-  socket/Socket.cpp
-  socket/WebSocket.cpp
-  socket/DataFrame.cpp
+  Socket.cpp
+  WebSocket.cpp
+  DataFrame.cpp
 
-  sha1/sha1.cpp
+  sha1.cpp
 
-  base64/base64.cpp
+  Base64.cpp
 
-  http/HttpRequest.cpp
-  http/HttpResponse.cpp
-  http/Url.h
+  HttpRequest.cpp
+  HttpResponse.cpp
+  Url.h
   
 )
 

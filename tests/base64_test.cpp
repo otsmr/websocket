@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../websocket/base64/base64.h"
+#include "../websocket/base64/Base64.h"
 
 void test_base64(char *input, char *expected, int length) {
 

@@ -4,15 +4,18 @@
  */
 
 #include "Socket.h"
-
+Socket::Socket(int port) {
+    m_port = port;
+}
 Socket::Socket(int port, int max_connections) {
     m_max_connections = max_connections;
     m_port = port;
 }
+Socket::~Socket() = default;
 
 void Socket::stop() {
 
-    m_state = Socket::State::Stopping;
+    m_state = Socket::Stopping;
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0); // AF_INET6
 
@@ -23,12 +26,8 @@ void Socket::stop() {
 
     int close_thread = connect(sockfd, (struct sockaddr*)& sockaddr, sizeof(sockaddr));
 
-    while (1)
-    {
-        if (m_state == State::Stopped)
-            break;
+    while (m_state != State::Stopped)
         sleep(1);
-    }
 
     close(close_thread);
     close(m_sockfd);
@@ -39,15 +38,15 @@ void Socket::wait_for_connection () {
 
     auto addrlen = sizeof(m_sockaddr);
 
-    while (1) {
+    while (true) {
 
-        int connection = accept(m_sockfd, (struct sockaddr*)&m_sockaddr, (socklen_t*)&addrlen);
+        auto connection = accept(m_sockfd, (struct sockaddr*)&m_sockaddr, (socklen_t*)&addrlen);
         if (connection < 0) {
             std::cout << "Failed to grab connection. errno: " << errno << std::endl;
             return;
         }
 
-        if (m_state != Socket::State::Running) {
+        if (m_state != Socket::Running) {
 
             std::cout << "Stopping WebSockets\n";
 
@@ -64,39 +63,35 @@ void Socket::wait_for_connection () {
             //     sleep(1); 
             // }
 
-            // for (WebSocket *connection : connections)
-            //     connection->~WebSocket();
-
             std::cout << "WebSockets stoppend\n";
 
             m_state = State::Stopped;
             return;
         }
 
-        // int free_con = -1;
-
-        // for(int i = 0; i < connections.size(); i++) {
-        //     if (connections[i]->state() == WebSocket::State::Disconnected) {
-        //         free_con = i;
-        //         break;
-        //     }
-        // }
-
-        // if (free_con == -1 && *max_connections <= *current_connections) {
-        //     std::cout << "Maximum number of connections reached.\n";
-        //     close(connection);
-        //     continue;
-        // }
-
-        std::cout << "connection=" <<  connection << std::endl;
-
-        auto * webSocket = new WebSocket (connection);
-        webSocket->listen();
-
-        if (on_open != nullptr) {
-            on_open(webSocket);
+        if (m_max_connections <= m_current_connections) {
+            std::cout << "Maximum number of connections reached.\n";
+            close(connection);
+            continue;
         }
-        
+
+        std::cout << "current_connections=" << m_current_connections << std::endl;
+
+        std::thread([&]() {
+
+            m_current_connections++;
+
+            WebSocket webSocket(connection);
+
+            if (on_open != nullptr)
+                on_open(&webSocket);
+
+            webSocket.listen();
+
+            m_current_connections--;
+
+        }).detach();
+
     }
 
 }

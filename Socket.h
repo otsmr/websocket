@@ -21,7 +21,9 @@
 class Socket {
 public:
 
+    Socket(int port);
     Socket(int port, int max_connections);
+    ~Socket();
 
     enum State {
         Running,

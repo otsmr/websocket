@@ -5,6 +5,8 @@
 
 
 #include "Base64.h"
+#include "../../websocket/base64/Base64.h"
+
 
 char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -94,4 +96,8 @@ void base64_encode (const uint8_t *input, char **output, size_t length) {
 
     *out = '\00';
 
+}
+
+int Base63::encode(const uint8_t *) {
+    return 0;
 }

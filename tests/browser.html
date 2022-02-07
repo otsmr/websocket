@@ -14,7 +14,7 @@
         <option value="8080">8080</option>
     </select>
     <button onclick="connect()">Connect</button>
-    <input type="number" id="multiple" value="1000" style="width: 60px;">
+    <input type="number" id="multiple" value="300" style="width: 60px;">
     <button onclick="connectMultiple()">Connect multiple</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
@@ -33,13 +33,23 @@
 
         let socket = null;
 
-        function connectMultiple () {
+        function sleep(time) {
+            return new Promise((re, rk) => {
+                setTimeout(() => {
+                    re();
+                }, time)
+            })
+        }
+
+        async function connectMultiple () {
 
             console.log("Connecting...");
 
             let sockets = [];
-            for (let i = 0; i < parseInt(multiple.value); i++)
+            for (let i = 0; i < parseInt(multiple.value); i++) {
                 sockets.push(new WebSocket('ws://localhost:' + port.value));
+                await sleep(10);
+            }
 
             setTimeout(() => {
                 console.log("Closing...");

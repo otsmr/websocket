@@ -198,7 +198,7 @@ void WebSocket::listen()
 
     std::thread ([&]() {
         listen_from_client();
-    }).detach();
+    }).join();
 
     // std::vector<uint8_t> raw_frame;
 
@@ -252,8 +252,7 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
     uint8_t hash[20];
     sha1((uint8_t *) sec_key.c_str(), hash, sec_key.size());
 
-    char * output = nullptr;
-    base64_encode(hash, &output, 20);
+    char * output = Base64::encode(hash);
 
     HTTP::HttpResponse response;
 
@@ -264,7 +263,7 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
         // "Sec-WebSocket-Protocol", "chat"
         "Sec-WebSocket-Version", "13"
     };
-
+    
     for (size_t i = 0; i < res_headers.size(); i+=2)
         response.set_header(res_headers[i], res_headers[i+1]);
 

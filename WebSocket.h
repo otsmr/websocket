@@ -10,16 +10,17 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <stdio.h>
+#include <cstdio>
 #include <thread>
 #include <fstream>
 
-#include "../http/HttpRequest.h"
-#include "../http/HttpResponse.h"
-#include "../sha1/sha1.h"
-#include "../base64/base64.h"
+#include "HttpRequest.h"
+#include "HttpResponse.h"
+#include "sha1.h"
+#include "Base64.h"
 
 #include "DataFrame.h"
+
 
 #define MAX_PACKET_SIZE 4096
 

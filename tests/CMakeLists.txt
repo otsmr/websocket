@@ -1,7 +1,7 @@
 project(muster)
 cmake_minimum_required(VERSION 2.8.12)
 
-add_library(base64_lib ../websocket/base64/base64.cpp ../websocket/base64/base64.h)
+add_library(base64_lib ../websocket/base64/Base64.cpp ../websocket/base64/Base64.h)
 add_library(sha1_lib ../websocket/sha1/sha1.cpp ../websocket/sha1/sha1.h)
 
 add_executable(base64_test base64_test.cpp)

@@ -2,8 +2,6 @@
 
 if [ "$1" == "test" ]; then
     cd ./tests
-else
-    cd ./websocket
 fi
 
 mkdir build

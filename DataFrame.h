@@ -30,8 +30,8 @@ public:
         Set = 0b1
     };
 
-    Bool m_fin;
-    Bool m_mask;
+    Bool m_fin = Set;
+    Bool m_mask = NotSet;
 
     enum RSV {
         RSV1 = 0b1,
@@ -47,7 +47,7 @@ public:
         Ping = 0x9,
         Pong = 0xA
     };
-    Opcode m_opcode;
+    Opcode m_opcode = TextFrame;
 
     // "Extension data" + the length of the "Application data"
     // The length of the "Extension data" may be
@@ -70,7 +70,7 @@ public:
 
     int payload_full() const { return ((m_payload_len_bytes - m_application_data.size()) == 0) ? 1 : 0; }
     size_t add_payload_data (uint8_t buffer[MAX_PACKET_SIZE], int offset, size_t buffer_size);
-    int parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], size_t buffer_size);
+    size_t parse_raw_frame (uint8_t buffer[MAX_PACKET_SIZE], size_t buffer_size);
     std::vector<uint8_t> get_raw_frame();
     
 };
