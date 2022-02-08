@@ -21,7 +21,6 @@
 
 #include "DataFrame.h"
 
-
 #define MAX_PACKET_SIZE 4096
 
 class WebSocket {
@@ -39,13 +38,12 @@ public:
     ~WebSocket();
 
     void listen();
-    void close(int close_frame_received);
+    void close(bool close_frame_received);
     State state () { return m_state; };
     int connection () const { return m_connection; };
 
-
     void handle_frame(DataFrame frame);
-    int handshake(uint8_t buffer[MAX_PACKET_SIZE]);
+    bool handshake(uint8_t buffer[MAX_PACKET_SIZE]) const;
 
 private:
     State m_state { State::Disconnected };

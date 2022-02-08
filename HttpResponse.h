@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <utility>
 
 #define linebreak "\r\n"
 
@@ -16,6 +17,9 @@ namespace HTTP {
     
 class HttpResponse {
 public:
+
+    HttpResponse() = default;
+    ~HttpResponse() = default;
 
     enum Statuscode {
         SwitchingProtocols = 101,
@@ -27,11 +31,7 @@ public:
         std::string value;
     };
 
-    HttpResponse();
-    ~HttpResponse();
-
     Header set_header(std::string name, std::string value);
-
     std::vector<uint8_t> get_raw_response();
 
 private:

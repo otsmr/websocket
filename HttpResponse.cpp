@@ -5,14 +5,7 @@
 
 #include "HttpResponse.h"
 
-#include <utility>
-
 namespace HTTP {
-
-HttpResponse::HttpResponse()
-= default;
-HttpResponse::~HttpResponse()
-= default;
 
 HttpResponse::Header HttpResponse::set_header (std::string name, std::string value) {
     Header h = {

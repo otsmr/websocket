@@ -10,12 +10,13 @@
 #include <iostream>
 #include <algorithm>
 
-#include "Url.h"
-
 namespace HTTP {
     
 class HttpRequest {
 public:
+
+    HttpRequest() = default;
+    ~HttpRequest() = default;
 
     enum Method {
         Invalid,
@@ -27,8 +28,11 @@ public:
         std::string value;
     };
 
-    HttpRequest();
-    ~HttpRequest();
+    struct Url {
+        std::string host;
+        std::string path;
+        std::string query;
+    };
 
     std::vector<Header> headers() { return m_headers; };
     Header get_header(const std::string& name);

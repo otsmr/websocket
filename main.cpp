@@ -23,8 +23,7 @@ int main () {
     //     // });
 
     };
-
-
+    
     if (socket.listen(1) == 1) {
         Socket s(8080, 10);
         if (s.listen(1) == 1)

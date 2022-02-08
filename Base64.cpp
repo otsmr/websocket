@@ -20,7 +20,7 @@ void encode(const uint8_t input[20], char * out) {
 
         for (j = 0; j < 3; j++)
         {
-            if ((28-pos-j) <= 0) {
+            if ((20-pos-j) <= 0) {
                 tmp[j] = '\00';
             } else {
                 tmp[j] = input[pos+j];

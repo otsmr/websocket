@@ -27,7 +27,7 @@ void WebSocket::handle_frame(DataFrame frame)
             m_close_statuscode = frame.m_application_data.at(0) << 8;
             m_close_statuscode += frame.m_application_data.at(1) & 0xff;
         }
-        close(1);
+        close(true);
         break;
 
     case DataFrame::Pong:
@@ -36,8 +36,8 @@ void WebSocket::handle_frame(DataFrame frame)
 
     case DataFrame::Ping:
 
-        pong_frame.m_fin = DataFrame::Set;
-        pong_frame.m_mask = DataFrame::NotSet;
+        pong_frame.m_fin = true;
+        pong_frame.m_mask = false;
         pong_frame.m_rsv = 0;
         pong_frame.m_opcode = DataFrame::Pong;
         pong_frame.m_payload_len_bytes = 0;
@@ -52,7 +52,7 @@ void WebSocket::handle_frame(DataFrame frame)
 
         m_framequeue.push_back(frame);
 
-        if (frame.m_fin == DataFrame::Bool::NotSet)
+        if (!frame.m_fin)
             return;
 
         std::cout << "[WebSocket " << m_connection << "] Message: ";
@@ -97,8 +97,8 @@ void WebSocket::listen_from_client() {
 
         if (m_state == State::WaitingForHandshake) {
             
-            if (handshake(buffer) < 0) {
-                close(1);
+            if (!handshake(buffer)) {
+                close(true);
                 return;
             }
 
@@ -113,18 +113,14 @@ void WebSocket::listen_from_client() {
 
             offset = last_frame.add_payload_data(buffer, 0, bytes_read);
 
-            if (last_frame.payload_full() == 0) {
+            if (!last_frame.payload_full())
                 continue;
-            }
 
-            if (last_frame.payload_full() == 1) {
-                m_state = State::Connected;
-                handle_frame(last_frame);
-            }
+            m_state = State::Connected;
+            handle_frame(last_frame);
 
-            if (offset == bytes_read) {
-                continue;
-            }
+            if (offset == bytes_read)
+                continue; // No more data available
     
         }
 
@@ -132,15 +128,11 @@ void WebSocket::listen_from_client() {
 
         while (offset < bytes_read) {
 
-            // 818af29d c26982f4 ac0ed2ed 01df9cfa  [ 0x00 * 4080 ]
-            // 818ae41a f7199473 997ec46a 34af8a7d 818ada67 1837aa0e 7650fa17 db81b4 [ 0x00 * 4065 ]
-            // 818ab0d9 cebac0b0 a0dd90a9 0d0cdebe  [ 0x00 * 4080 ]
-
             DataFrame current_frame;
             offset += current_frame.parse_raw_frame(buffer+offset, bytes_read-offset);
             frame = current_frame;
 
-            if (frame.payload_full() == 0)
+            if (!frame.payload_full())
                 break;
 
         }
@@ -206,7 +198,7 @@ void WebSocket::listen()
     
 }
 
-int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
+bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) const {
 
     std::vector<uint8_t> raw_data(buffer, buffer+MAX_PACKET_SIZE);
 
@@ -217,10 +209,9 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
      * nonce consisting of a randomly selected 16-byte value that has
      * been base64-encoded.
      */
-    char sec_key[24+36+1]{};
+    char sec_key[24+37]{};
     strncpy(sec_key, request.get_header("sec-websocket-key").value.c_str(), 24);
-    strncpy(sec_key+24, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", 36);
-    sec_key[24+36] = '\00';
+    strncpy(sec_key+24, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11\00", 37);
 
     uint8_t sha1_hash[20];
     sha1((uint8_t *) sec_key, sha1_hash, 24+36);
@@ -240,11 +231,11 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
 
     send(m_connection, raw.data(), raw.size(), 0);
 
-    return 1;
+    return true;
 
 }
 
-void WebSocket::close(int close_frame_received) {
+void WebSocket::close(bool close_frame_received) {
 
     if (m_state == State::Disconnected)
         return;
@@ -255,8 +246,8 @@ void WebSocket::close(int close_frame_received) {
 
         DataFrame frame;
 
-        frame.m_fin = DataFrame::Set;
-        frame.m_mask = DataFrame::NotSet;
+        frame.m_fin = true;
+        frame.m_mask = false;
         frame.m_rsv = 0;
         frame.m_opcode = DataFrame::ConectionClose;
         frame.m_payload_len_bytes = 2;
@@ -273,7 +264,7 @@ void WebSocket::close(int close_frame_received) {
 
     }
 
-    if (close_frame_received == 0) { 
+    if (!close_frame_received) { 
 
         for (size_t i = 0; i <= m_close_timeout; i++)
         {
@@ -282,7 +273,7 @@ void WebSocket::close(int close_frame_received) {
             if (m_state == State::Disconnected)
                 return; // thread -> close_frame_received = 1
 
-            sleep(1000);
+            sleep(1);
         }
 
         std::cout << "Closing timeout\n";

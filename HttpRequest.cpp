@@ -6,11 +6,6 @@
 #include "HttpRequest.h"
 
 namespace HTTP {
-    
-HttpRequest::HttpRequest()
-= default;
-HttpRequest::~HttpRequest()
-= default;
 
 HttpRequest::Header HttpRequest::get_header (const std::string& name)
 {

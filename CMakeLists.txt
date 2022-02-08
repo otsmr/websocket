@@ -27,8 +27,6 @@ add_executable(main
 
   HttpRequest.cpp
   HttpResponse.cpp
-  Url.h
-  
 )
 
 target_link_libraries(main PRIVATE Threads::Threads)
