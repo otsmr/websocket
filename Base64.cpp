@@ -8,9 +8,10 @@
 
 char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-char * Base64::encode(const uint8_t input[20]) {
+namespace Base64 {
 
-    static char out[29];
+void encode(const uint8_t input[20], char * out) {
+
     int pos, j;
 
     uint8_t tmp[3];
@@ -36,6 +37,6 @@ char * Base64::encode(const uint8_t input[20]) {
     out[27] = '=';
     out[28] = '\00';
 
-    return out;
-
 }
+
+} // namespace Base64

@@ -5,7 +5,6 @@
 
 
 #include "Base64.h"
-#include "../../websocket/base64/Base64.h"
 
 
 char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

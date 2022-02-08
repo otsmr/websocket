@@ -89,12 +89,6 @@ void WebSocket::listen_from_client() {
     DataFrame last_frame;
 
     size_t offset;
-
-    // clean file
-    // std::fstream f;
-    // f.open("buffer.txt", std::ofstream::out | std::ofstream::trunc);
-    // f.close();
-
     size_t bytes_read;
 
     while (
@@ -112,32 +106,6 @@ void WebSocket::listen_from_client() {
             continue;
 
         }
-
-        // std::fstream f;
-        // f.open("buffer.txt", std::ios::app);
-        // int j;
-        // for (size_t i = 0; i < bytes_read; i++)
-        // {
-        //     if (i < (bytes_read-17)) {
-        //         for (j = i; j < (i+17); j++) {
-        //             if (buffer[j] != '\00')
-        //                 break;
-        //         }
-        //         if (j > i+15) {
-        //             f << " [ 0x00 * " << (bytes_read) - i << " ]\n";
-        //             break;
-        //         }
-        //     }
-        //     char hex[4];
-        //     snprintf(hex, 4, "%02x", buffer[i]);
-        //     f << hex[0] << hex[1];
-        //     if ((i+1) % 4 == 0)
-        //         f << " ";
-        //     if ((i+1) % (4*8) == 0)
-        //         f << "\n";
-        // }
-        // f << "\n----------------------------------------------------- \n";
-        // f.close();
 
         offset = 0;
 
@@ -245,27 +213,28 @@ int WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
     HTTP::HttpRequest request;
     request.from_raw_request(raw_data);
 
-    std::string sec_key = 
-        request.get_header("sec-websocket-key").value +
-        "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    /* The value of this header field MUST be a
+     * nonce consisting of a randomly selected 16-byte value that has
+     * been base64-encoded.
+     */
+    char sec_key[24+36+1]{};
+    strncpy(sec_key, request.get_header("sec-websocket-key").value.c_str(), 24);
+    strncpy(sec_key+24, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", 36);
+    sec_key[24+36] = '\00';
 
-    uint8_t hash[20];
-    sha1((uint8_t *) sec_key.c_str(), hash, sec_key.size());
+    uint8_t sha1_hash[20];
+    sha1((uint8_t *) sec_key, sha1_hash, 24+36);
 
-    char * output = Base64::encode(hash);
+    char b64_output[29]{};
+    Base64::encode(sha1_hash, b64_output);
 
     HTTP::HttpResponse response;
 
-    std::vector<std::string> res_headers= {
-        "Upgrade", "websocket",
-        "Connection", "Upgrade",
-        "Sec-WebSocket-Accept", output,
-        // "Sec-WebSocket-Protocol", "chat"
-        "Sec-WebSocket-Version", "13"
-    };
-    
-    for (size_t i = 0; i < res_headers.size(); i+=2)
-        response.set_header(res_headers[i], res_headers[i+1]);
+    response.set_header("Upgrade", "websocket");
+    response.set_header("Connection", "Upgrade");
+    response.set_header("Sec-WebSocket-Accept", b64_output);
+    // response.set_header("Sec-WebSocket-Protocol", "");
+    response.set_header("Sec-WebSocket-Version", "13");
 
     std::vector<uint8_t> raw = response.get_raw_response();
 

@@ -13,10 +13,13 @@
 typedef u_int8_t uint8_t;
 #endif
 
-class Base64 {
-public:
-    // The value of this header field MUST be a
-    // nonce consisting of a randomly selected 16-byte value that has
-    // been base64-encoded (see Section 4 of [RFC4648]).
-    static char * encode(const uint8_t [20]);
-};
+namespace Base64 {
+    /*
+     * Covert byte values to the Base64 representation.
+     *
+     * @param[in] input 20-byte-value
+     * @param[out] output 29-length char array. \00 terminated.
+     *              ceil((20/3)*4) = 28 + len(\00) = 29
+     */
+    void encode(const uint8_t [20], char *output);
+}; // namespace Base64
