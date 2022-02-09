@@ -22,7 +22,7 @@ class Socket {
 public:
 
     Socket(int port);
-    Socket(int port, int max_connections);
+    Socket(int port, bool use_tls, int max_connections);
     ~Socket();
 
     enum State {
@@ -43,8 +43,10 @@ public:
 private:
 
     State m_state { State::Running };
-    int m_max_connections = 10000;
     sockaddr_in m_sockaddr{};
+
+    bool m_use_tls = false;
+    int m_max_connections = 10000;
     int m_current_connections = 0;
     int m_sockfd = -1;
     int m_port = 9090;

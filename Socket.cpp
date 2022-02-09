@@ -7,9 +7,10 @@
 Socket::Socket(int port) {
     m_port = port;
 }
-Socket::Socket(int port, int max_connections) {
+Socket::Socket(int port, bool use_tls, int max_connections) {
     m_max_connections = max_connections;
     m_port = port;
+    m_use_tls = use_tls;
 }
 Socket::~Socket() = default;
 
@@ -77,7 +78,7 @@ void Socket::wait_for_connection () {
 
         std::cout << "current_connections=" << m_current_connections << std::endl;
 
-        std::thread([&]() {
+        auto webSocketConnection = [&](int connection) {
 
             m_current_connections++;
 
@@ -89,6 +90,18 @@ void Socket::wait_for_connection () {
             webSocket.listen();
 
             m_current_connections--;
+
+        };
+
+        std::thread([&](){
+
+            if (m_use_tls) {
+                std::cout << "TLS Handshake, ..." << std::endl;
+                // TLSWrapper tlsWrapper;
+                // tlsWrapper.listen_to_socket(socket, [&]);
+            } else {
+                webSocketConnection(connection);
+            }
 
         }).detach();
 

@@ -125,4 +125,26 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
 
 }
 
+std::vector<std::string> HttpRequest::header_value_as_array(std::string name) {
+
+    std::string value = get_header(name).value;
+    std::string buffer;
+    std::vector<std::string> array;
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+        if (value.at(i) == ';') {
+            array.push_back(buffer);
+            buffer = "";
+            continue;
+        }
+        buffer += value.at(i);
+    }
+    array.push_back(buffer);
+
+    return array;
+
+}
+
+
 } // namespace HTTP

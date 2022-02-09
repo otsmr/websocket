@@ -25,7 +25,7 @@ int main () {
     };
     
     if (socket.listen(1) == 1) {
-        Socket s(8080, 10);
+        Socket s(8080);
         if (s.listen(1) == 1)
             return 1;
         socket = s;

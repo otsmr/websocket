@@ -9,7 +9,6 @@ WebSocket::WebSocket(int connection)
 {
     m_connection = connection;
 }
-WebSocket::~WebSocket() = default;
 
 void WebSocket::handle_frame(DataFrame frame)
 {
@@ -198,7 +197,7 @@ void WebSocket::listen()
     
 }
 
-bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) const {
+bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
 
     std::vector<uint8_t> raw_data(buffer, buffer+MAX_PACKET_SIZE);
 
@@ -217,7 +216,15 @@ bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) const {
     sha1((uint8_t *) sec_key, sha1_hash, 24+36);
 
     char b64_output[29]{};
-    Base64::encode(sha1_hash, b64_output);
+    Base64::encode(sha1_hash, b64_output, 20);
+
+    auto extensions = request.header_value_as_array("sec-websocket-extensions");
+
+    for (auto & extension : extensions) {   
+        if (extension == "permessage-deflate") {
+            m_extensions |= PermessageDeflate;
+        }
+    }
 
     HTTP::HttpResponse response;
 

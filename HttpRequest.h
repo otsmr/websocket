@@ -36,6 +36,7 @@ public:
 
     std::vector<Header> headers() { return m_headers; };
     Header get_header(const std::string& name);
+    std::vector<std::string> header_value_as_array(std::string name);
 
     Method method() const { return m_method; }
     Url url() const { return m_url; }

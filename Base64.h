@@ -17,9 +17,10 @@ namespace Base64 {
     /*
      * Covert byte values to the Base64 representation.
      *
-     * @param[in] input 20-byte-value
-     * @param[out] output 29-length char array. \00 terminated.
-     *              ceil((20/3)*4) = 28 + len(\00) = 29
+     * @param[in] input char array
+     * @param[in] len of the input char array
+     * @param[out] output char array. \00 terminated.
+     *              ceil((len/3)*4) + len(\00)
      */
-    void encode(const uint8_t [20], char *output);
+    void encode(const uint8_t *input, char *output, size_t len);
 }; // namespace Base64
