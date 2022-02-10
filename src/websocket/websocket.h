@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <thread>
 #include <fstream>
+#include <functional>
 
 #include "../http/response.h"
 #include "../http/request.h"
@@ -49,6 +50,7 @@ public:
     State state () const { return m_state; };
     int connection () const { return m_connection; };
 
+    void send_message(std::string message);
     void on_message(fkt_string f) { m_on_message = f; };
 
 private:
@@ -60,7 +62,7 @@ private:
 
     int m_connection = -1;
     int m_close_timeout = 5; // seconds
-    int m_waiting_for_pong = 0;
+    bool m_waiting_for_pong = false;
     
     size_t m_ping_status = 0;
     size_t m_pong_status = 0; // 
@@ -69,6 +71,6 @@ private:
 
     void handle_frame(DataFrame frame);
     bool handshake(uint8_t buffer[MAX_PACKET_SIZE]);
-    void listen_from_client();
+    void check_for_keep_alive();
 
 };

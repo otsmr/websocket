@@ -17,7 +17,7 @@
 
 #include "../websocket/websocket.h"
 
-typedef std::function<void(std::shared_ptr<WebSocket>)> fkt_ws;
+typedef std::function<void(WebSocket *)> fkt_ws;
 
 
 class Socket {

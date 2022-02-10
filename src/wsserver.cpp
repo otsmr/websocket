@@ -11,45 +11,52 @@
 
 int main () {
 
-    char option = 0;
-    Socket socket(3001);
+    int ports[] =  {3000, 3001, 8080, 9090, -1}; // errno: 98 - Address already in use
+    int p = 0;
 
-    socket.on_open([](std::shared_ptr<WebSocket> ws) {
+    while (ports[p] != -1)
+    {
+        
+        char option = 0;
+        Socket socket(ports[p]);
 
-        std::cout << "Neue Verbindung [" << ws->connection() << "]\n";
+        socket.on_open([](auto * ws) {
 
-        ws->on_message([&ws](std::string message) {
+            std::cout << "[WebSocket " << ws->connection() << "] connected\n";
 
-            std::cout << "[WebSocket " << ws->connection() << "] Message :" << message << "\n";
+            ws->on_message([&ws](std::string message) {
+
+                std::cout << "[WebSocket " << ws->connection() << "] Message: " << message << "\n";
+
+                ws->send_message("Hello back!");
+
+            });
 
         });
 
-    });
-    
-    if (!socket.listen(true)) {
-        
-        Socket s(8080);
+        if (socket.listen(true)) {
+            
+            std::cout << "Port: " << socket.port() << "\n";
 
-        if (!s.listen(true))
-            return 1;
+            while (option != 's') {
 
-        socket = s;
-        
-    };
+                std::cin >> option;
 
-    std::cout << "Port: " << socket.port() << "\n";
+                if (option == 's')
+                    socket.stop();
+                else
+                    std::cout << "Option nicht bekannt.\n";
+                
+            }
 
-    while (option != 's') {
+            break; 
+        }
 
-        std::cin >> option;
+        p++;
 
-        if (option == 's')
-            socket.stop();
-        else
-            std::cout << "Option nicht bekannt.\n";
-        
     }
-
+    
+    
     return 0;
 
 }

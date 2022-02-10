@@ -5,6 +5,7 @@
 
 #include "socket.h"
 
+Socket::~Socket() = default;
 Socket::Socket(int port) {
     m_port = port;
 }
@@ -13,13 +14,12 @@ Socket::Socket(int port, bool use_tls, int max_connections) {
     m_port = port;
     m_use_tls = use_tls;
 }
-Socket::~Socket() = default;
 
 void Socket::stop() {
 
     m_state = Socket::Stopping;
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0); // AF_INET6
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0); 
 
     sockaddr_in sockaddr{};
     sockaddr.sin_family = AF_INET;
@@ -49,24 +49,7 @@ void Socket::wait_for_connection () {
         }
 
         if (m_state != Socket::Running) {
-
-            std::cout << "Stopping WebSockets\n";
-
-            // for (WebSocket * connection : connections)
-            //     connection->close();
-
-            // int run = 1;
-            // while (run)
-            // {
-            //     run = 0;
-            //     for (WebSocket *connection : connections)
-            //         if (connection->state() != WebSocket::State::Disconnected)
-            //             run = 1;
-            //     sleep(1); 
-            // }
-
-            std::cout << "WebSockets stoppend\n";
-
+            // TODO: close websockets?
             m_state = State::Stopped;
             return;
         }
@@ -77,19 +60,16 @@ void Socket::wait_for_connection () {
             continue;
         }
 
-        std::cout << "current_connections=" << m_current_connections << std::endl;
-
         auto webSocketConnection = [&](int connection) {
 
             m_current_connections++;
 
-            std::shared_ptr<WebSocket> webSocket = std::make_shared<WebSocket>(connection);
-            // WebSocket webSocket(connection);
+            WebSocket webSocket(connection);
 
             if (m_on_open != nullptr)
-                m_on_open(webSocket);
+                m_on_open(&webSocket);
 
-            webSocket->listen();
+            webSocket.listen();
 
             m_current_connections--;
 
@@ -111,9 +91,9 @@ void Socket::wait_for_connection () {
 
 }
 
-bool Socket::listen (bool async) {   
+bool Socket::listen (bool async) {
 
-    // TODO: AF_INET6
+    // TODO: AF_INET6 -> own thread?
     m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (m_sockfd == -1) {
         std::cout << "Failed to create socket. errno: " << errno << std::endl;

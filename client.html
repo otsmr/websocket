@@ -10,8 +10,10 @@
 
     <p>Status: <span id="state">Disconnected</span></p>
     <select id="port">
-        <option value="3001" selected>3001</option>
+        <option value="3000" selected>3000</option>
+        <option value="3001">3001</option>
         <option value="8080">8080</option>
+        <option value="9090">9090</option>
     </select>
     <button onclick="connect()">Connect</button>
     <input type="number" id="multiple" value="200" style="width: 60px;">
@@ -23,7 +25,7 @@
     <textarea id="message" placeholder="Nachricht senden"></textarea> <br />
     <button onclick="send()" >Senden</button><br /><br />
 
-    <div style="max-height: 200px; overflow: scroll;border:1px solid black;">
+    <div style="max-height: 200px; overflow: auto;border:1px solid black;">
 
         <pre id="server_messages"></pre>
     </div>

@@ -10,6 +10,13 @@ WebSocket::WebSocket(int connection)
     m_connection = connection;
 }
 
+void WebSocket::send_message(std::string message) {
+
+    std::vector<uint8_t> raw_frame = DataFrame::get_text_frame(message).get_raw_frame();
+    send(m_connection, raw_frame.data(), raw_frame.size(), 0);
+
+}
+
 void WebSocket::handle_frame(DataFrame frame)
 {
 
@@ -17,6 +24,9 @@ void WebSocket::handle_frame(DataFrame frame)
     std::string msg;
     DataFrame pong_frame;
     std::vector<uint8_t> raw_frame;
+
+    const auto p1 = std::chrono::system_clock::now();
+    std::time_t today_time = std::chrono::system_clock::to_time_t(p1);
 
     switch (frame.m_opcode)
     {
@@ -30,10 +40,12 @@ void WebSocket::handle_frame(DataFrame frame)
         break;
 
     case DataFrame::Pong:
-        m_waiting_for_pong = 0;
+        m_waiting_for_pong = false;
         break;
 
     case DataFrame::Ping:
+
+        std::cout << "Ping from the Browser: " << std::ctime(&today_time) << std::endl;
 
         pong_frame.m_fin = true;
         pong_frame.m_mask = false;
@@ -53,8 +65,6 @@ void WebSocket::handle_frame(DataFrame frame)
 
         if (!frame.m_fin)
             return;
-
-
 
         for (DataFrame& f : m_framequeue)
             message += f.get_utf8_string();
@@ -87,7 +97,43 @@ void WebSocket::handle_frame(DataFrame frame)
 
 }
 
-void WebSocket::listen_from_client() {
+void WebSocket::check_for_keep_alive() {
+
+    // check if the client is alive
+    std::thread ([&]() {
+
+        std::vector<uint8_t> raw_frame;
+
+        while (m_state > State::WaitingForHandshake)
+        {
+
+            std::this_thread::sleep_for(std::chrono::seconds(20));
+
+            raw_frame = DataFrame::get_ping_frame().get_raw_frame();
+            send(m_connection, raw_frame.data(), raw_frame.size(), 0);
+
+            m_waiting_for_pong = true;
+
+            std::this_thread::sleep_for(std::chrono::seconds(m_close_timeout));
+
+            if (m_waiting_for_pong) {
+                std::cout << "[WebSocket " << m_connection << "] no pong\n";
+                m_close_statuscode = 1002;
+                close(0);
+                break;
+            }
+
+        }
+    }).detach();
+
+}
+
+void WebSocket::listen()
+{
+
+    m_state = State::WaitingForHandshake;
+
+    check_for_keep_alive();
 
     uint8_t buffer[MAX_PACKET_SIZE];
     DataFrame last_frame;
@@ -95,9 +141,10 @@ void WebSocket::listen_from_client() {
     size_t offset;
     size_t bytes_read;
 
-    while (
-        (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)) > 0 &&
-        m_state >= State::WaitingForHandshake) {
+    while (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE) > 0) {
+
+        if (m_state < State::WaitingForHandshake)
+            break;
 
         if (m_state == State::WaitingForHandshake) {
             
@@ -105,6 +152,10 @@ void WebSocket::listen_from_client() {
                 close(true);
                 return;
             }
+
+            const auto p1 = std::chrono::system_clock::now();
+            std::time_t today_time = std::chrono::system_clock::to_time_t(p1);
+            std::cout << "Connected: " << std::ctime(&today_time) << std::endl;
 
             m_state = State::Connected;
             continue;
@@ -150,55 +201,6 @@ void WebSocket::listen_from_client() {
         handle_frame(frame);
         
     }
-
-}
-
-void WebSocket::listen()
-{
-
-    std::cout << "[WebSocket " << m_connection << "] open\n";
-
-    m_state = State::WaitingForHandshake;
-
-    std::thread ([&]() {
-        listen_from_client();
-    }).join();
-
-    // std::vector<uint8_t> raw_frame;
-
-    // while (m_state >= State::WaitingForHandshake)
-    // {
-
-    //     raw_frame = DataFrame::get_ping_frame().get_raw_frame();
-    //     send(m_connection, raw_frame.data(), raw_frame.size(), 0);
-
-    //     m_waiting_for_pong = 1;
-
-    //     sleep(m_close_timeout);
-
-    //     if (m_waiting_for_pong == 1) {
-    //         std::cout << "[WebSocket " << m_connection << "] no pong\n";
-    //         m_close_statuscode = 1002;
-    //         close(0);
-    //         break;
-    //     }
-
-    //     // if (m_state > State::WaitingForHandshake) {
-
-    //     //     std::string text = "ping " + std::to_string(counter);
-
-    //     //     if (counter == 0) {
-    //     //         text = "pong";
-    //     //     }
-
-    //     //     raw_frame = DataFrame::get_text_frame(text).get_raw_frame();
-    //     //     send(m_connection, raw_frame.data(), raw_frame.size(), 0);
-
-    //     // }
-
-    //     sleep(10);
-
-    // }
     
 }
 

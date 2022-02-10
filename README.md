@@ -6,18 +6,18 @@ First of all it is **about learning C++ on a project**. The goal is to implement
 
 ## standards
 ### already implemented
-- [Base64](https://datatracker.ietf.org/doc/html/rfc4648#section-4)
-- [SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
-- [HTTP-Header parser](https://datatracker.ietf.org/doc/html/rfc2616)
-- [the WebSocket Protocol](https://datatracker.ietf.org/doc/html/rfc6455)
+- [WS: Base64](https://datatracker.ietf.org/doc/html/rfc4648#section-4)
+- [WS: SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
+- [WS: HTTP-Header](https://datatracker.ietf.org/doc/html/rfc2616)
 ### work in progress
-- Sockets
+- [WebSocket](https://datatracker.ietf.org/doc/html/rfc6455)
+- Make more stable
 ### still to make
-- [extension: permessage-deflate](https://www.rfc-editor.org/rfc/rfc7692.html)
-- [DEFLATE Compressed Data Format](https://www.rfc-editor.org/rfc/rfc1951)
-- [extensions](https://www.iana.org/assignments/websocket/websocket.xhtml)
-- 32 and 64 bit support
-- TLS Wrapper für den Socket
+- [WS: permessage-deflate](https://www.rfc-editor.org/rfc/rfc7692.html)
+- [WS: DEFLATE](https://www.rfc-editor.org/rfc/rfc1951)
+- [TLSv1.3](https://datatracker.ietf.org/doc/html/rfc8446)
+- WebSocket (uint64_t): 32 and 64 bit support
+- Sockets: IPv6 support 
 
 # requirements
 - CMake 3.22.1 `brew install cmake`
