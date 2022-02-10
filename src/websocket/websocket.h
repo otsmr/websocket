@@ -14,14 +14,16 @@
 #include <thread>
 #include <fstream>
 
-#include "HttpRequest.h"
-#include "HttpResponse.h"
-#include "sha1.h"
-#include "Base64.h"
+#include "../http/response.h"
+#include "../http/request.h"
+#include "../sha1/sha1.h"
+#include "../base64/base64.h"
 
-#include "DataFrame.h"
+#include "frame.h"
 
 #define MAX_PACKET_SIZE 4096
+
+typedef std::function<void(std::string)> fkt_string;
 
 class WebSocket {
 public:
@@ -47,7 +49,11 @@ public:
     State state () const { return m_state; };
     int connection () const { return m_connection; };
 
+    void on_message(fkt_string f) { m_on_message = f; };
+
 private:
+
+    fkt_string m_on_message = nullptr;
 
     State m_state { Disconnected };
     uint8_t m_extensions = NoExtensions;

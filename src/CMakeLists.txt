@@ -14,19 +14,21 @@ set(CMAKE_CXX_STANDARD 17)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_executable(main
-  main.cpp
+add_executable(wsserver
+  wsserver.cpp
 
-  Socket.cpp
-  WebSocket.cpp
-  DataFrame.cpp
+  base64/base64.cpp
+  
+  sha1/sha1.cpp
+  
+  http/request.cpp
+  http/response.cpp
+  
+  socket/socket.cpp
 
-  sha1.cpp
-
-  Base64.cpp
-
-  HttpRequest.cpp
-  HttpResponse.cpp
+  websocket/frame.cpp
+  websocket/websocket.cpp
+  
 )
 
-target_link_libraries(main PRIVATE Threads::Threads)
+target_link_libraries(wsserver PRIVATE Threads::Threads)

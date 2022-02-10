@@ -3,11 +3,11 @@
  * 
  */
 
-#include "HttpResponse.h"
+#include "response.h"
 
 namespace HTTP {
 
-HttpResponse::Header HttpResponse::set_header (std::string name, std::string value) {
+Response::Header Response::set_header (std::string name, std::string value) {
     Header h = {
         std::move(name),
         std::move(value)
@@ -16,11 +16,11 @@ HttpResponse::Header HttpResponse::set_header (std::string name, std::string val
     return h;
 }
 
-std::vector<uint8_t> HttpResponse::get_raw_response() {
+std::vector<uint8_t> Response::get_raw_response() {
 
     std::string response;
 
-    response += m_protocol + " " + std::to_string(m_statuscode) + " ";
+    response += "HTTP/1.1 " + std::to_string(m_statuscode) + " ";
 
     switch (m_statuscode)
     {
@@ -35,7 +35,7 @@ std::vector<uint8_t> HttpResponse::get_raw_response() {
     }
     response += linebreak;
     
-    for (const HTTP::HttpResponse::Header& header : m_headers) 
+    for (const HTTP::Response::Header& header : m_headers) 
         response += header.name + ": " + header.value + linebreak;
 
     response += linebreak;

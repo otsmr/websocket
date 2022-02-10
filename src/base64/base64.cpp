@@ -4,7 +4,7 @@
  */
 
 
-#include "Base64.h"
+#include "base64.h"
 
 char characters[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

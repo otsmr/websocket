@@ -3,7 +3,7 @@
  * 
  */
 
-#include "WebSocket.h"
+#include "websocket.h"
 
 WebSocket::WebSocket(int connection)
 {
@@ -54,11 +54,15 @@ void WebSocket::handle_frame(DataFrame frame)
         if (!frame.m_fin)
             return;
 
-        std::cout << "[WebSocket " << m_connection << "] Message: ";
+
 
         for (DataFrame& f : m_framequeue)
             message += f.get_utf8_string();
 
+        if (m_on_message != nullptr)
+            m_on_message(message);
+
+#if 0
         for (size_t i = 0; i < ((message.size() > 50) ? 10 : message.size()); i++)
             msg += message.at(i);
 
@@ -68,7 +72,8 @@ void WebSocket::handle_frame(DataFrame frame)
                 msg += message.at(i);
         }
 
-        std::cout << msg << "\n";
+        std::cout << "[WebSocket " << m_connection << "] Message: " << msg << "\n";
+#endif
 
         m_framequeue.clear();
 
@@ -201,8 +206,8 @@ bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
 
     std::vector<uint8_t> raw_data(buffer, buffer+MAX_PACKET_SIZE);
 
-    HTTP::HttpRequest request;
-    request.from_raw_request(raw_data);
+    HTTP::Request request;
+    request.init_from_raw_request(raw_data);
 
     /* The value of this header field MUST be a
      * nonce consisting of a randomly selected 16-byte value that has
@@ -226,7 +231,7 @@ bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
         }
     }
 
-    HTTP::HttpResponse response;
+    HTTP::Response response;
 
     response.set_header("Upgrade", "websocket");
     response.set_header("Connection", "Upgrade");

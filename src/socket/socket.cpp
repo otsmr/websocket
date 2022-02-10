@@ -3,7 +3,8 @@
  * 
  */
 
-#include "Socket.h"
+#include "socket.h"
+
 Socket::Socket(int port) {
     m_port = port;
 }
@@ -82,12 +83,13 @@ void Socket::wait_for_connection () {
 
             m_current_connections++;
 
-            WebSocket webSocket(connection);
+            std::shared_ptr<WebSocket> webSocket = std::make_shared<WebSocket>(connection);
+            // WebSocket webSocket(connection);
 
-            if (on_open != nullptr)
-                on_open(&webSocket);
+            if (m_on_open != nullptr)
+                m_on_open(webSocket);
 
-            webSocket.listen();
+            webSocket->listen();
 
             m_current_connections--;
 
@@ -109,13 +111,13 @@ void Socket::wait_for_connection () {
 
 }
 
-int Socket::listen (int async) {   
+bool Socket::listen (bool async) {   
 
     // TODO: AF_INET6
     m_sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (m_sockfd == -1) {
         std::cout << "Failed to create socket. errno: " << errno << std::endl;
-        return 1;
+        return false;
     } 
 
     m_sockaddr.sin_family = AF_INET;
@@ -124,12 +126,12 @@ int Socket::listen (int async) {
     
     if (bind(m_sockfd, (struct sockaddr*)&m_sockaddr, sizeof(m_sockaddr)) < 0) {
         std::cout << "Failed to bind to port " << m_port << ". errno: " << errno << std::endl;
-        return 1;
+        return false;
     }
 
     if (::listen(m_sockfd, m_max_connections) < 0) {
         std::cout << "Failed to listen on socket. errno: " << errno << std::endl;
-        return 1;
+        return false;
     }
 
     if (async) {
@@ -140,6 +142,6 @@ int Socket::listen (int async) {
         wait_for_connection();
     }
 
-    return 0;
+    return true;
 
 }

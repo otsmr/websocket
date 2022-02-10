@@ -14,7 +14,7 @@
         <option value="8080">8080</option>
     </select>
     <button onclick="connect()">Connect</button>
-    <input type="number" id="multiple" value="300" style="width: 60px;">
+    <input type="number" id="multiple" value="200" style="width: 60px;">
     <button onclick="connectMultiple()">Connect multiple</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
@@ -56,7 +56,7 @@
                 for (const socket of sockets)
                     socket.close();
                 
-            }, 5000);
+            }, 1000*20);
 
         }
 
@@ -87,7 +87,7 @@
     
             setTimeout(() => {
                 clearInterval(i);
-            }, 5000);
+            }, 1000*5);
         }
         function send () {
             socket.send(message.value);

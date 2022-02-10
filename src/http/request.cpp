@@ -3,13 +3,13 @@
  * 
  */
 
-#include "HttpRequest.h"
+#include "request.h"
 
 namespace HTTP {
 
-HttpRequest::Header HttpRequest::get_header (const std::string& name)
+Request::Header Request::get_header (const std::string& name)
 {
-    for (const HTTP::HttpRequest::Header& h : m_headers)
+    for (const HTTP::Request::Header& h : m_headers)
         if (h.name == name)
             return h;
 
@@ -17,10 +17,31 @@ HttpRequest::Header HttpRequest::get_header (const std::string& name)
     return res;
 }
 
-HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
+std::vector<std::string> Request::header_value_as_array(std::string name) {
+
+    std::string value = get_header(name).value;
+    std::string buffer;
+    std::vector<std::string> array;
+
+    for (size_t i = 0; i < value.size(); i++)
+    {
+        if (value.at(i) == ';') {
+            array.push_back(buffer);
+            buffer = "";
+            continue;
+        }
+        buffer += value.at(i);
+    }
+    array.push_back(buffer);
+
+    return array;
+
+}
+
+void Request::init_from_raw_request(std::vector<uint8_t> raw_request)
 {
 
-    enum class State {
+    enum State {
         InMethod,
         InResource,
         InProtocol,
@@ -32,13 +53,12 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
         State::InMethod
     };
     
-    HttpRequest request;
+    Request request;
     Header header;
     
     size_t index = 0;
 
     std::string method;
-    std::string resource;
     std::string protocol;
 
     std::vector<uint8_t> buffer;
@@ -74,9 +94,8 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
             case State::InProtocol:
                 if (at() == '\r')
                     index++;
-                if (at() == '\n') {
+                if (at() == '\n')
                     commit(protocol, State::InHeaderName);
-                } 
                 buffer.push_back(at());
                 break;
             case State::InHeaderName:
@@ -110,41 +129,15 @@ HttpRequest HttpRequest::from_raw_request(std::vector<uint8_t> raw_request)
             index++;
 
         if (at() == '\n' && ((at(1) == '\n') || at(1) == '\r')) 
-            break;
+            break; // body
 
         index++;
 
     }
 
-    std::string host;
-
     if (method == "GET")
         m_method = Method::GET;
     
-    return request;
-
 }
-
-std::vector<std::string> HttpRequest::header_value_as_array(std::string name) {
-
-    std::string value = get_header(name).value;
-    std::string buffer;
-    std::vector<std::string> array;
-
-    for (size_t i = 0; i < value.size(); i++)
-    {
-        if (value.at(i) == ';') {
-            array.push_back(buffer);
-            buffer = "";
-            continue;
-        }
-        buffer += value.at(i);
-    }
-    array.push_back(buffer);
-
-    return array;
-
-}
-
 
 } // namespace HTTP

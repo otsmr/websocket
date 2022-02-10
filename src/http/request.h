@@ -12,11 +12,11 @@
 
 namespace HTTP {
     
-class HttpRequest {
+class Request {
 public:
 
-    HttpRequest() = default;
-    ~HttpRequest() = default;
+    Request() = default;
+    ~Request() = default;
 
     enum Method {
         Invalid,
@@ -34,20 +34,20 @@ public:
         std::string query;
     };
 
+    Method method() const { return m_method; }
+    Url url() const { return m_url; }
     std::vector<Header> headers() { return m_headers; };
+
     Header get_header(const std::string& name);
     std::vector<std::string> header_value_as_array(std::string name);
 
-    Method method() const { return m_method; }
-    Url url() const { return m_url; }
-
-    HttpRequest from_raw_request(std::vector<uint8_t> raw_request);
+    void init_from_raw_request(std::vector<uint8_t> raw_request);
 
 private:
 
     Method m_method { Method::Invalid };
     std::vector<Header> m_headers;
-    std::vector<uint8_t> m_body;
+    // std::vector<uint8_t> m_body;
     Url m_url;
     
 };

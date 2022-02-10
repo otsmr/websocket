@@ -15,11 +15,11 @@
 
 namespace HTTP {
     
-class HttpResponse {
+class Response {
 public:
 
-    HttpResponse() = default;
-    ~HttpResponse() = default;
+    Response() = default;
+    ~Response() = default;
 
     enum Statuscode {
         SwitchingProtocols = 101,
@@ -36,10 +36,9 @@ public:
 
 private:
 
-    std::string m_protocol = "HTTP/1.1";
-    Statuscode m_statuscode { Statuscode::SwitchingProtocols };
+    // const char m_protocol[9] = "HTTP/1.1";
+    Statuscode m_statuscode { SwitchingProtocols };
     std::vector<Header> m_headers;
-    std::vector<uint8_t> m_body;
     
 };
 

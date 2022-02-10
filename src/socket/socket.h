@@ -15,7 +15,9 @@
 #include <thread>
 #include <functional>
 
-#include "WebSocket.h"
+#include "../websocket/websocket.h"
+
+typedef std::function<void(std::shared_ptr<WebSocket>)> fkt_ws;
 
 
 class Socket {
@@ -31,17 +33,17 @@ public:
         Stopped
     };
 
-    int listen(int async);
+    bool listen(bool async);
     void stop();
 
     int port() const { return m_port; };
 
-    // use std::shared_ptr ??
-    std::function<void(WebSocket *)> on_open = nullptr;
-
+    void on_open(fkt_ws f) { m_on_open = f; };
 
 private:
 
+    fkt_ws m_on_open = nullptr;
+    
     State m_state { State::Running };
     sockaddr_in m_sockaddr{};
 

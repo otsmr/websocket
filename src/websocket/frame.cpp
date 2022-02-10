@@ -3,13 +3,13 @@
  * 
  */
 
-#include "DataFrame.h"
+#include "frame.h"
 
 size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, size_t buffer_size) {
 
     uint64_t copybytes = (uint64_t) m_payload_len_bytes - m_application_data.size() + offset;
 
-    if (copybytes > (uint64_t) buffer_size)
+    if (copybytes > buffer_size)
         copybytes = (uint64_t) buffer_size;
 
     uint64_t index = m_application_data.size();
@@ -31,7 +31,7 @@ size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, 
 std::vector<uint8_t> DataFrame::get_raw_frame() {
 
     uint8_t tmp;
-    uint64_t size = m_application_data.size();
+    size_t size = m_application_data.size();
     std::vector<uint8_t> raw_frame;
 
     tmp  = m_fin << 7;

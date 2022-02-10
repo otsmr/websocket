@@ -2,6 +2,8 @@
 
 if [ "$1" == "test" ]; then
     cd ./tests
+else
+    cd ./src
 fi
 
 mkdir build
@@ -11,8 +13,8 @@ cmake --build build
 if [ "$1" == "run" ]; then
     
     echo "-----------------------"
-    pkill main
-    ./build/main
+    pkill wsserver
+    ./build/wsserver
     echo ""
 
 fi
