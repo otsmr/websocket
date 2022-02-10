@@ -60,7 +60,7 @@ void Socket::wait_for_connection () {
             continue;
         }
 
-        auto webSocketConnection = [&](int connection) {
+        auto webSocketConnection = [&]() {
 
             m_current_connections++;
 
@@ -82,7 +82,7 @@ void Socket::wait_for_connection () {
                 // TLSWrapper tlsWrapper;
                 // tlsWrapper.listen_to_socket(socket, [&]);
             } else {
-                webSocketConnection(connection);
+                webSocketConnection();
             }
 
         }).detach();

@@ -25,9 +25,6 @@ void WebSocket::handle_frame(DataFrame frame)
     DataFrame pong_frame;
     std::vector<uint8_t> raw_frame;
 
-    const auto p1 = std::chrono::system_clock::now();
-    std::time_t today_time = std::chrono::system_clock::to_time_t(p1);
-
     switch (frame.m_opcode)
     {
 
@@ -44,8 +41,6 @@ void WebSocket::handle_frame(DataFrame frame)
         break;
 
     case DataFrame::Ping:
-
-        std::cout << "Ping from the Browser: " << std::ctime(&today_time) << std::endl;
 
         pong_frame.m_fin = true;
         pong_frame.m_mask = false;
@@ -139,9 +134,14 @@ void WebSocket::listen()
     DataFrame last_frame;
 
     size_t offset;
-    size_t bytes_read;
+    int bytes_read;
 
-    while (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE) > 0) {
+    while ((bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)) > 0) {
+
+        if (bytes_read == 0) {
+            close(true);
+            break;
+        }
 
         if (m_state < State::WaitingForHandshake)
             break;
@@ -152,10 +152,6 @@ void WebSocket::listen()
                 close(true);
                 return;
             }
-
-            const auto p1 = std::chrono::system_clock::now();
-            std::time_t today_time = std::chrono::system_clock::to_time_t(p1);
-            std::cout << "Connected: " << std::ctime(&today_time) << std::endl;
 
             m_state = State::Connected;
             continue;
