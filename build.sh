@@ -21,5 +21,5 @@ fi
 
 if [ "$1" == "test" ]; then
     cd build
-    ctest
+    ctest --output-on-failure
 fi

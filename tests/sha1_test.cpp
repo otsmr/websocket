@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "../src/sha1/sha1.h"
+#include "sha1/sha1.h"
 
 void test_sha1(char *string, char expected[41]) {
 

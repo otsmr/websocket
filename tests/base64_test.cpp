@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../src/base64/base64.h"
+#include "base64/base64.h"
 
 void test_base64(char *input, char *expected, int length) {
 
@@ -21,7 +21,7 @@ void test_base64(char *input, char *expected, int length) {
     Base64::decode(output, string_decoded, &decoded_length);
 
     if (decoded_length != length) {
-        printf("FAILED decoded_length (%llu) != length (%d)", decoded_length, length);
+        printf("FAILED decoded_length (%zu) != length (%d)", decoded_length, length);
     }
 
     for (int i = 0; i < decoded_length; i++)
