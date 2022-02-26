@@ -47,4 +47,44 @@ void encode(const uint8_t * input , char * output, size_t len) {
 
 }
 
+void decode (const char *input, uint8_t *output, size_t *out_len) {
+
+    int len = strlen(input);
+
+    if (len % 4 != 0)
+        return;
+
+    *out_len = len - len/4;
+
+    char i;
+    uint8_t tmp[4];
+    uint8_t *out = output;
+
+    char reverse_characters['z'+1];
+    for (i = 0; i < 65; i++)
+        reverse_characters[characters[i]] = i;
+
+    while (*input != '\00')
+    {
+        for (i = 0; i < 4; i++)
+        {
+            if (*(input+i) == '=') {
+                *(tmp+i) = '\00';
+                (*out_len)--;
+            } else {
+                *(tmp+i) = reverse_characters[*(input+i)];
+            }
+        }
+    
+        *(out+0) = (*(tmp+0) << 2) | (*(tmp+1) >> 4);
+        *(out+1) = (*(tmp+1) << 4) | (*(tmp+2) >> 2);
+        *(out+2) = ((*(tmp+2) & 15) << 6) | *(tmp+3);
+        
+        input  += 4;
+        out    += 3;
+
+    }
+    
+}
+
 } // namespace Base64

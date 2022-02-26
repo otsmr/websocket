@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../websocket/base64/Base64.h"
+#include "../src/base64/base64.h"
 
 void test_base64(char *input, char *expected, int length) {
 
-    char *output = NULL;
-    uint8_t *string_decoded = NULL;
+    char output[20]{};
+    uint8_t string_decoded[20]{};
     size_t decoded_length = -1;
 
-    base64_encode((uint8_t *) input, &output, length);
+    Base64::encode((uint8_t *) input, output, length);
 
     for (int i = 0; i < strlen(expected); i++)
     {
@@ -18,7 +18,7 @@ void test_base64(char *input, char *expected, int length) {
         }
     }
     
-    base64_decode(output, &string_decoded, &decoded_length);
+    Base64::decode(output, string_decoded, &decoded_length);
 
     if (decoded_length != length) {
         printf("FAILED decoded_length (%llu) != length (%d)", decoded_length, length);

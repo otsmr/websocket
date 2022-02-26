@@ -23,4 +23,5 @@ namespace Base64 {
      *              ceil((len/3)*4) + len(\00)
      */
     void encode(const uint8_t *input, char *output, size_t len);
+    void decode(const char *input, uint8_t *output, size_t *out_len);
 }; // namespace Base64
