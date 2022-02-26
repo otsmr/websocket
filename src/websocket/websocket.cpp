@@ -216,7 +216,7 @@ bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
     strncpy(sec_key+24, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11\00", 37);
 
     uint8_t sha1_hash[20];
-    sha1((uint8_t *) sec_key, sha1_hash, 24+36);
+    Hash::sha1((uint8_t *) sec_key, sha1_hash, 24+36);
 
     char b64_output[29]{};
     Base64::encode(sha1_hash, b64_output, 20);

@@ -9,7 +9,7 @@ void test_sha1(char *string, char expected[41]) {
     uint8_t hash[20];
     char hexdigest[41];
 
-    sha1((uint8_t *) string, hash, strlen(string));
+    Hash::sha1((uint8_t *) string, hash, strlen(string));
 
     for (char i = 0; i < 20; i++)
         snprintf((hexdigest+(i*2)), 4, "%02x", hash[i]);

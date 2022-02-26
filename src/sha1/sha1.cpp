@@ -4,7 +4,8 @@
  */
 
 #include "sha1.h"
-#include <cstdint>
+
+namespace Hash {
 
 #define S(word, bits) \
             (((word) << (bits)) | ((word) >> (32-(bits))))
@@ -125,3 +126,5 @@ void sha1 (uint8_t *input, uint8_t *output, int length) {
         *(output+i) = H[i>>2] >> 8 * ( 3 - ( i & 0x03 ) );
     
 }
+
+} // namespace Hash
