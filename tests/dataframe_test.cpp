@@ -1,5 +1,9 @@
-#include <stdlib.h>
+/*
+ * Copyright (c) 2022, Tobias <git@tsmr.eu>
+ * 
+ */
 
+#include <stdlib.h>
 #include "websocket/frame.h"
 
 #ifdef __linux__

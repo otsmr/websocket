@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2022, Tobias <git@tsmr.eu>
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>

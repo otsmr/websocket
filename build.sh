@@ -21,5 +21,9 @@ fi
 
 if [ "$1" == "test" ]; then
     cd build
-    ctest --output-on-failure
+    if [ "$2" != "" ]; then
+        ctest --output-on-failure --tests-regex "$2"
+    else
+        ctest --output-on-failure
+    fi
 fi

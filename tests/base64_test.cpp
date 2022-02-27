@@ -1,6 +1,10 @@
+/*
+ * Copyright (c) 2022, Tobias <git@tsmr.eu>
+ * 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "base64/base64.h"
 
 void test_base64(char *input, char *expected, int length) {

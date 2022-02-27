@@ -4,3 +4,4 @@ build/
 buffer.txt
 cmake-build-debug/
 .idea
+test/
