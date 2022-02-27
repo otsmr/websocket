@@ -17,7 +17,7 @@
 
 #include "../http/response.h"
 #include "../http/request.h"
-#include "../sha1/sha1.h"
+#include "../hash/sha1.h"
 #include "../base64/base64.h"
 
 #include "frame.h"

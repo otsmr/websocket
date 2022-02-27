@@ -17,33 +17,28 @@ namespace Hash {
 #define SSIG0(x) (ROTR(7, x) ^ ROTR(18, x) ^ (x >> 3))
 #define SSIG1(x) (ROTR(17, x) ^ ROTR(19, x) ^ (x >> 10))
 
-void sha256 (uint8_t *input, uint8_t *output, unsigned int length) {   
+void sha256 (uint8_t *input, uint8_t *output, size_t length) {   
 
     int t;
     int wcount;
-    uint8_t *message = nullptr;
     uint32_t a, b, c, d, e, f, g, h;
     uint32_t T1, T2;
-    uint32_t pos = 0;
     uint32_t W[64];
-    uint64_t len_pad = ((length) + (64 - (length%64))); // length + padding in bytes
+    uint8_t padding[64+64]{};
+    size_t pos = 0;
+    uint8_t padding_length = 64 - (length % 64);
 
-    if ((length % 64) != 0 && ((length*8)+65) > 512) {
-        len_pad += 64;
+    if (padding_length < 5) { // Padding: "1" + 0's + length (4*8 bits)
+        padding_length += 64;
     }
 
-    message = (uint8_t *) calloc(len_pad+2, sizeof(uint8_t));
-    memcpy(message, input, length);
-
     // 4. Message Padding
-    if ((length % 64) != 0 || length == 0) {
+    if (padding_length > 0) {
 
-        // a. "1" is appended.
-        message[length] = 0x80;
-        // b. "0"s are appended. -> calloc()
-        // c. 4-word representation of l
-        for (char i = 0; i < 16; i++)
-            *((message + len_pad) - i - 1) = (uint8_t) ((length*8) >> (i*8)) & 0xff;
+        memset(padding, 0x00, padding_length); // "0"s are appended.
+        padding[0] = 0x80; // 1 is appended.
+        for (char i = 0; i < 4; i++) // 4-word representation of l
+            padding[padding_length-i-1] = (uint8_t) ((length*8) >> (i*8)) & 0xff;
 
     }
 
@@ -77,7 +72,7 @@ void sha256 (uint8_t *input, uint8_t *output, unsigned int length) {
       0x5be0cd19
     };
 
-    for (int i = 0; i < (len_pad / 64); i++)
+    while (pos < (length + padding_length))
     {
         
         memset (W, 0, 64 * sizeof (uint32_t));
@@ -93,12 +88,15 @@ void sha256 (uint8_t *input, uint8_t *output, unsigned int length) {
 
         for (t = 0; t <= 63; t++)
         {
-
             if (t <= 15) {
                 wcount = 24;
                 while (wcount >= 0)
                 {
-                    W[t] += (((uint32_t) message[pos]) << wcount);
+                    if (pos < length) {
+                        W[t] += ((uint32_t) input[pos]) << wcount;
+                    } else {
+                        W[t] += ((uint32_t) padding[pos-length]) << wcount;
+                    }
                     pos++;
                     wcount -= 8;
                 }
@@ -108,9 +106,6 @@ void sha256 (uint8_t *input, uint8_t *output, unsigned int length) {
 
             T1 = h + BSIG1(e) + CH(e, f, g) + K[t] + W[t];
             T2 = BSIG0(a) + MAJ(a, b, c);
-
-            printf("t[%d] T1[%u] T2[%u]\n", t, T1, T2);
-
             h = g;
             g = f;
             f = e;
@@ -131,9 +126,6 @@ void sha256 (uint8_t *input, uint8_t *output, unsigned int length) {
         H[7] += h;
         
     }
-
-    for (int i = 0;i<8;i++)
-        printf("H[%d]=%u\n", i, H[i]);
 
     for(int i = 0; i < 32; ++i)
         output[i] = H[i>>2] >> 8 * ( 3 - ( i & 0x03 ) );
