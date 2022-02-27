@@ -38,6 +38,15 @@ target_include_directories(sha256_test PRIVATE "../src")
 add_test(sha256_test sha256_test 0)
 set_tests_properties(sha256_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 
+# TEST sha384
+add_executable(
+    sha384_test sha384_test.cpp
+    ../src/hash/sha384.cpp
+)
+target_include_directories(sha384_test PRIVATE "../src")
+add_test(sha384_test sha384_test 0)
+set_tests_properties(sha384_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+
 # TEST websocket frames
 add_executable(
     dataframe_test dataframe_test.cpp

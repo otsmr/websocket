@@ -6,16 +6,15 @@ First of all it is **about learning C++ on a project**. The goal is to implement
 
 ## standards
 ### already implemented
+- [WebSocket](https://datatracker.ietf.org/doc/html/rfc6455)
 - [WS: Base64](https://datatracker.ietf.org/doc/html/rfc4648#section-4)
 - [WS: SHA-1](https://datatracker.ietf.org/doc/html/rfc3174)
 - [WS: HTTP-Header](https://datatracker.ietf.org/doc/html/rfc2616)
-- [WebSocket](https://datatracker.ietf.org/doc/html/rfc6455)
+- [TLSv1.3: SHA256](https://datatracker.ietf.org/doc/html/rfc6234)
+- [TLSv1.3: SHA384](https://datatracker.ietf.org/doc/html/rfc6234)
 ### work in progress
 - Make more stable
 - [TLSv1.3](https://datatracker.ietf.org/doc/html/rfc8446)
-**hash**
-- MUST: [TLSv1.3: SHA256](https://datatracker.ietf.org/doc/html/rfc6234)
-- SHOULD: SHA384
 **cipher suites**
 - MUST: [TLSv1.3: TLS_AES_128_GCM_SHA256] 
 - SHOULD: [TLSv1.3: TLS_AES_256_GCM_SHA384] 
