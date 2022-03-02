@@ -20,6 +20,8 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - Cipher suite: [TLS: AES_256_GCM]()
 - Cipher suite: [TLS: HACHA20_POLY1305]()
 - TLS curves: [TLS: X25519]()
+- Beispiel: > https://github.com/SerenityOS/serenity/pull/12493
+- Beispiel: > https://github.com/SerenityOS/serenity/pull/12605
 - TLS curves: [TLS: prime256v1]()
 - TLS curves: [TLS: secp384r1]()
 ### still to make
