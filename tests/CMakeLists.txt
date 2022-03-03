@@ -29,6 +29,15 @@ target_include_directories(sha1_test PRIVATE "../src")
 add_test(sha1_test sha1_test 0)
 set_tests_properties(sha1_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 
+# TEST aes
+add_executable(
+    aes_test aes_test.cpp
+    ../src/aes/aes.cpp
+)
+target_include_directories(aes_test PRIVATE "../src")
+add_test(aes_test aes_test 0)
+set_tests_properties(aes_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+
 # TEST sha256
 add_executable(
     sha256_test sha256_test.cpp

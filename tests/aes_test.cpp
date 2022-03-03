@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) 2022, Tobias <git@tsmr.eu>
+ * 
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include "aes/aes.h"
+
+void test_aes(u8 *input, u8 *key, u8 *expected) {
+
+    AES aes(AES::b128);
+
+    u8 output[32]{};
+    if (!aes.encrypt(input, output, key)) {
+        printf("FAILED!");
+    }
+
+}
+
+int main(int argc, char **argv) {
+
+    u8 input[] = {0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34};
+    u8 key[] = {0x2b, 0x28, 0xab, 0x09, 0x7e, 0xae, 0xf7, 0xcf, 0x15, 0xd2, 0x15, 0x4f, 0x16, 0xa6, 0x88, 0x3c};
+    u8 expected[16]{};
+
+    test_aes(input, key, expected);
+
+}
