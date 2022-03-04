@@ -6,15 +6,15 @@
 #include <cstdint>
 #include <string.h>
 
-typedef uint8_t u8;
+typedef uint8_t byte;
 
 class AES {
 public:
 
     enum Blocksize {
-        b128,
-        b192,
-        b256
+        b128 = 128,
+        b192 = 192,
+        b256 = 256
     };
 
     AES() = default;
@@ -25,16 +25,19 @@ public:
      * AES sequence encrypt
      * The input and output each consist of sequences of 128 bits.
      */
-    bool encrypt(uint8_t *input, uint8_t * output, uint8_t key[32]);
-    bool decrypt(uint8_t *input, uint8_t * output, uint8_t key[32]);
+    bool encrypt(uint8_t *input, uint8_t * output);
+    bool decrypt(uint8_t *input, uint8_t * output);
+
+    void update_key(byte * key);
 
 private:
     Blocksize m_blocksize { b256 };
 
     uint8_t m_state[16];
-    u8 m_key[32];
+    byte m_expanded_key[60][4];
 
-    void AddRoundKey();
+    void AddRoundKey(byte round);
+    void KeySchedule();
 
     void InvMixColumns();
     void MixColumns();
@@ -43,7 +46,7 @@ private:
     void InvSubBytes();
     void SubBytes();
 
-    void RotWord();
-    void SubWord();
+    void RotWord(byte * word);
+    void SubWord(byte * word);
 
 };

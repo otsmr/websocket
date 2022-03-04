@@ -3,14 +3,10 @@
  * 
  */
 
-
 #include "aes.h"
 #include <stdio.h>
 
-// multiplication denoted by •
-// mod 110011011
-
-const u8 SBox[16][16] = {
+const byte SBox[16][16] = {
     {0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76},
     {0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0},
     {0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15},
@@ -30,13 +26,13 @@ const u8 SBox[16][16] = {
 };
 
 
-void print_state(u8 * state) {
-    for (u8 x = 0; x < 4; x++)
+void print_state(byte * state) {
+    for (byte x = 0; x < 4; x++)
     {
         printf("%d [", x);
-        for (u8 y = 0; y < 4; y++)
+        for (byte y = 0; y < 4; y++)
         {
-            printf("%02x", state[(x*4) + y]);
+            printf("%02x", state[(y*4) + x]);
             if (y <= 2)
                 printf(" ");
         }
@@ -45,46 +41,118 @@ void print_state(u8 * state) {
 
 };
 
-
 void AES::SubBytes() {
 
-    for (u8 i = 0; i < 16; i++)
-    {
+    for (byte i = 0; i < 16; i++)
         m_state[i] = SBox[(m_state[i] >> 4) & 0xf][(m_state[i]) & 0xf];
+
+}
+
+void AES::SubWord(byte * word) {
+
+    for (byte i = 0; i < 4; i++)
+        word[i] = SBox[(word[i] >> 4) & 0xf][(word[i]) & 0xf];
+
+}
+
+void AES::RotWord(byte * word) {
+    byte tmp = word[0];
+    word[0] = word[1];
+    word[1] = word[2];
+    word[2] = word[3];
+    word[3] = tmp;
+}
+
+void AES::update_key(byte * key) {
+
+    byte temp[4];
+
+    const byte Nk = m_blocksize / 32; // (Key-Length in words (4 Bytes))
+    const byte Nr = m_blocksize / 32 + 6;
+
+    const byte Rcon[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36};
+
+    memcpy(m_expanded_key, key, 32);
+
+    // for (size_t i = 0; i < 4; i++)
+    // {
+    //     printf("w%zu = ", i);
+    //     for (size_t j = 0; j < 4; j++) 
+    //         printf("%2x", m_expanded_key[i][j]);
+    //     printf("\n");
+    // }
+
+    for (size_t i = Nk; i < 4*(Nr+1); i++)
+    {
+        memcpy(temp, m_expanded_key[i-1], 4);
+
+        // printf("temp = ");
+        // for (size_t j = 0; j < 4; j++)
+        //     printf("%2x", temp[j]);
+        // printf("\n");
+
+        if (i % Nk == 0) {
+
+            RotWord(temp);
+            // printf("after RotWord() = ");
+            // for (size_t j = 0; j < 4; j++)
+            //     printf("%2x", temp[j]);
+            // printf("\n");
+
+            SubWord(temp);
+
+            // printf("after SubWord() = ");
+            // for (size_t j = 0; j < 4; j++)
+            //     printf("%2x", temp[j]);
+            // printf("\n");
+            
+            temp[0] ^= Rcon[i/Nk-1];
+
+            // printf("after XOR with Rcon %2x = ");
+            // for (size_t j = 0; j < 4; j++)
+            //     printf("%2x", temp[j]);
+            // printf("\n");
+
+        } else if (Nk > 6 && i % Nk == 4) {
+            SubWord(temp);
+        }
+        for (byte j = 0; j < 4; j++)
+            m_expanded_key[i][j] = m_expanded_key[i-Nk][j] ^ temp[j];
+  
     }
 
 }
 
-void AES::AddRoundKey() {
+void AES::AddRoundKey(byte round) {
 
-    for (u8 i = 0; i < 16; i++)
+    for (byte x = 0; x < 4; x++)
     {
-        m_state[i] = m_state[i] ^ m_key[i];
+        for (byte y = 0; y < 4; y++)
+            m_state[(x*4) + y] = m_state[(x*4) + y] ^ m_expanded_key[(round*4)+x][y];   
     }
 
 }
 
 void AES::ShiftRows() {
 
-    for (u8 shift = 1; shift < 4; shift++)
+    for (byte shift = 1; shift < 4; shift++)
     {
-        for (u8 i = 0; i < shift; i++)
+        for (byte i = 0; i < shift; i++)
         {
-            u8 tmp =                 m_state[(shift*4) + 0];
-            m_state[(shift*4) + 0] = m_state[(shift*4) + 1];
-            m_state[(shift*4) + 1] = m_state[(shift*4) + 2];
-            m_state[(shift*4) + 2] = m_state[(shift*4) + 3];
-            m_state[(shift*4) + 3] = tmp;
+            byte tmp = m_state[shift];
+            m_state[shift] = m_state[shift+4];
+            m_state[shift+4] = m_state[shift+8];
+            m_state[shift+8] = m_state[shift+12];
+            m_state[shift+12] = tmp;
         }
-        
     }
 }
 
-u8 multiplication_of_polynomials_modulo(u8 a, u8 b) {
+byte multiplication_of_polynomials_modulo(byte a, byte b) {
 
-    u8 k[8]{};
+    byte k[8]{};
 
-    for (u8 i = 0; i < 8; i++)
+    for (byte i = 0; i < 8; i++)
     {
         k[i] = a * (0b1 << (i+1)) & 0xff;
         if (i >= 1) {
@@ -94,13 +162,13 @@ u8 multiplication_of_polynomials_modulo(u8 a, u8 b) {
         }
     }
 
-    u8 c = 0b0;
+    byte c = 0b0;
 
     if ((b & 0b1) == 0b1) {
         c ^= a;
     }
 
-    for (u8 i = 0; i < 8; i++)
+    for (byte i = 0; i < 8; i++)
     {
         if((b >> (i+1) & 0b1) == 0b1) {
             c ^= k[i];
@@ -113,30 +181,30 @@ u8 multiplication_of_polynomials_modulo(u8 a, u8 b) {
 
 void AES::MixColumns() {
 
-    u8 matrix[] =
+    byte matrix[] =
        {0x02, 0x03, 0x01, 0x01,
         0x01, 0x02, 0x03, 0x01,
         0x01, 0x01, 0x02, 0x03,
         0x03, 0x01, 0x01, 0x02};
 
-    u8 tmp_matrix[16];
+    byte tmp_matrix[16];
 
-    for (u8 column = 0; column < 4; column++)
+    for (byte column = 0; column < 4; column++)
     {
-        for (u8 row = 0; row < 4; row++)
+        for (byte row = 0; row < 4; row++)
         {
             uint32_t tmp = 0;
-            for (u8 matrix_column = 0; matrix_column < 4; matrix_column++)
+            for (byte matrix_column = 0; matrix_column < 4; matrix_column++)
             {
                 // if (matrix_column > 0)
                 //     printf(" + ");
-                u8 a = multiplication_of_polynomials_modulo(matrix[(row*4)+matrix_column], m_state[column + (4*matrix_column)]);
+                byte a = multiplication_of_polynomials_modulo(matrix[(row*4)+matrix_column], m_state[matrix_column + (4*column)]);
                 tmp ^= a;
                 // printf("(%d * %d [%d])", matrix[(row*4)+matrix_column], m_state[column + (4*matrix_column)], a);
             }
 
             // printf(" = %x\n", tmp);
-            tmp_matrix[column + (4*row)] = tmp;
+            tmp_matrix[row + (4*column)] = tmp;
             
         }
         
@@ -146,44 +214,43 @@ void AES::MixColumns() {
 
 }
 
-bool AES::encrypt(u8 * input, u8 * output, u8 key[16]) {
+bool AES::encrypt(byte * input, byte * output) {
 
-    memcpy(m_key, key, 32);
     memcpy(m_state, input, 16);
 
-    u8 rounds = m_blocksize / 32 + 6;
+    byte rounds = m_blocksize / 32 + 6;
 
-    AddRoundKey();
-    // printf("After AddRoundKey()\n");
-    // print_state(m_state);
+    printf("\n\n--- RUNDE 0 ----\n\n");
+    print_state(m_state);
+    AddRoundKey(0);
 
-    for (u8 round = 0; round < rounds; round++)
+    for (byte round = 1; round <= rounds; round++)
     {
+        printf("\n\n--- RUNDE %d ----\n\n", round);
+        print_state(m_state);
         SubBytes();
-        // printf("After SubBytes()\n");
-        // print_state(m_state);
+        printf("After SubBytes()\n");
+        print_state(m_state);
 
         ShiftRows();
-        // printf("After ShiftRows()\n");
-        // print_state(m_state);
-        
-        if (round < rounds-1) { // final round don't call MixColumns();
-            MixColumns();
-            // printf("After MixColumns()\n");
-            // print_state(m_state);
-        }
-        AddRoundKey();
-        printf("After AddRoundKey()\n");
+        printf("After ShiftRows()\n");
         print_state(m_state);
-        return false;
+        if (round <= rounds-1) {
+            MixColumns();
+            printf("After MixColumns()\n");
+            print_state(m_state);
+        }
+        AddRoundKey(round);
     }
 
     memcpy(output, m_state, 16);
-
-    // cleanup the state
     memset(m_state, 0x00, 16);
-    memset(m_key, 0x00, 32);
 
     return true;
 
+}
+
+bool AES::decrypt(byte * input, byte * output) {
+
+    return true;
 }
