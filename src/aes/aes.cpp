@@ -220,25 +220,25 @@ bool AES::encrypt(byte * input, byte * output) {
 
     byte rounds = m_blocksize / 32 + 6;
 
-    printf("\n\n--- RUNDE 0 ----\n\n");
-    print_state(m_state);
+    // printf("\n\n--- RUNDE 0 ----\n\n");
+    // print_state(m_state);
     AddRoundKey(0);
 
     for (byte round = 1; round <= rounds; round++)
     {
-        printf("\n\n--- RUNDE %d ----\n\n", round);
-        print_state(m_state);
+        // printf("\n\n--- RUNDE %d ----\n\n", round);
+        // print_state(m_state);
         SubBytes();
-        printf("After SubBytes()\n");
-        print_state(m_state);
+        // printf("After SubBytes()\n");
+        // print_state(m_state);
 
         ShiftRows();
-        printf("After ShiftRows()\n");
-        print_state(m_state);
+        // printf("After ShiftRows()\n");
+        // print_state(m_state);
         if (round <= rounds-1) {
             MixColumns();
-            printf("After MixColumns()\n");
-            print_state(m_state);
+            // printf("After MixColumns()\n");
+            // print_state(m_state);
         }
         AddRoundKey(round);
     }
