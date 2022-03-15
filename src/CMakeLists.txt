@@ -19,7 +19,7 @@ add_executable(wsserver
 
   base64/base64.cpp
   
-  sha1/sha1.cpp
+  hash/sha1.cpp
   
   http/request.cpp
   http/response.cpp

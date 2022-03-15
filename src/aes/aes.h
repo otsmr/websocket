@@ -39,12 +39,12 @@ private:
     void AddRoundKey(byte round);
     void KeySchedule();
 
-    void InvMixColumns();
     void MixColumns();
+    void InvMixColumns();
     void ShiftRows();
     void InvShiftRows();
-    void InvSubBytes();
     void SubBytes();
+    void InvSubBytes();
 
     void RotWord(byte * word);
     void SubWord(byte * word);
