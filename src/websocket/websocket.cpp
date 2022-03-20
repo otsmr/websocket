@@ -19,12 +19,7 @@ void WebSocket::send_message(std::string message) {
 
 void WebSocket::handle_frame(DataFrame frame)
 {
-
-    std::string message;
-    std::string msg;
-    DataFrame pong_frame;
-    std::vector<uint8_t> raw_frame;
-
+    
     switch (frame.m_opcode)
     {
 
@@ -41,54 +36,77 @@ void WebSocket::handle_frame(DataFrame frame)
         break;
 
     case DataFrame::Ping:
-
-        pong_frame.m_fin = true;
-        pong_frame.m_mask = false;
-        pong_frame.m_rsv = 0;
-        pong_frame.m_opcode = DataFrame::Pong;
-        pong_frame.m_payload_len_bytes = 0;
-
-        raw_frame = pong_frame.get_raw_frame();
-        send(m_connection, raw_frame.data(), raw_frame.size(), 0);
-
+        send_pong_frame();
         break;
 
     // case DataFrame::BinaryFrame:
     case DataFrame::TextFrame:
 
-        m_framequeue.push_back(frame);
+        //m_framequeue.push_back(frame);
 
         if (!frame.m_fin)
             return;
 
-        for (DataFrame& f : m_framequeue)
-            message += f.get_utf8_string();
-
-        if (m_on_message != nullptr)
-            m_on_message(message);
-
-#if 0
-        for (size_t i = 0; i < ((message.size() > 50) ? 10 : message.size()); i++)
-            msg += message.at(i);
-
-        if (message.size() > 50) {
-            msg += "...";
-            for (size_t i = message.size()-10; i < message.size()-1; i++)
-                msg += message.at(i);
-        }
-
-        std::cout << "[WebSocket " << m_connection << "] Message: " << msg << "\n";
-#endif
+        handle_text_frame();
 
         m_framequeue.clear();
 
         break;
     
     default:
+
+#if DEBUG_LEVEL >= 4
         std::cout << "frame.opcode NOT IMPLEMEMTED: (" << frame.m_opcode << ")  \n";
+#endif
         break;
     }
 
+}
+
+void WebSocket::handle_text_frame () {
+
+    std::string message;
+
+    // for (DataFrame& f : m_framequeue)
+    //     message += f.get_utf8_string();
+
+    // message = m_framequeue[0].get_utf8_string();
+
+    if (m_on_message != nullptr)
+        m_on_message(this, message);
+
+#if DEBUG_LEVEL >= 7
+
+    std::string msg;
+
+    for (size_t i = 0; i < ((message.size() > 50) ? 10 : message.size()); i++)
+        msg += message.at(i);
+
+    if (message.size() > 50) {
+        msg += "...";
+        for (size_t i = message.size()-10; i < message.size()-1; i++)
+            msg += message.at(i);
+    }
+
+    std::cout << "[WebSocket " << m_connection << "] Message: " << msg << "\n";
+
+#endif
+
+}
+
+void WebSocket::send_pong_frame() {
+
+    DataFrame pong_frame;
+
+    pong_frame.m_fin = true;
+    pong_frame.m_mask = false;
+    pong_frame.m_rsv = 0;
+    pong_frame.m_opcode = DataFrame::Pong;
+    pong_frame.m_payload_len_bytes = 0;
+
+    std::vector<uint8_t> raw_frame = pong_frame.get_raw_frame();
+
+    send(m_connection, raw_frame.data(), raw_frame.size(), 0);
 
 }
 
@@ -109,7 +127,7 @@ void WebSocket::check_for_keep_alive() {
 
             m_waiting_for_pong = true;
 
-            std::this_thread::sleep_for(std::chrono::seconds(m_close_timeout));
+            std::this_thread::sleep_for(std::chrono::seconds(CONNECTION_TIMEOUT_SECONDS));
 
             if (m_waiting_for_pong) {
                 std::cout << "[WebSocket " << m_connection << "] no pong\n";
@@ -136,7 +154,7 @@ void WebSocket::listen()
     size_t offset;
     int bytes_read;
 
-    while ((bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)) > 0) {
+    while (0 < (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE))) {
 
         if (bytes_read == 0) {
             close(true);
@@ -276,22 +294,22 @@ void WebSocket::close(bool close_frame_received) {
 
     if (!close_frame_received) { 
 
-        for (size_t i = 0; i <= m_close_timeout; i++)
+        for (size_t i = 0; i < CONNECTION_TIMEOUT_SECONDS; i++)
         {
-            if (i == m_close_timeout)
-                break;
             if (m_state == State::Disconnected)
                 return; // thread -> close_frame_received = 1
-
             sleep(1);
         }
-
-        std::cout << "Closing timeout\n";
+#if DEBUG_LEVEL >= 6
+        std::cout << "[WebSocket " << m_connection << "] closing with timeout\n";
+#endif
 
     }
 
     // Close WebSocket  ...
-    std::cout << "[WebSocket " << m_connection << "] closed ("<<m_close_statuscode << ")\n";
+#if DEBUG_LEVEL >= 6
+    std::cout << "[WebSocket " << m_connection << "] closed (" << m_close_statuscode << ")\n";
+#endif
     ::close(m_connection);
     m_state = State::Disconnected;
 

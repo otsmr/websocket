@@ -58,16 +58,6 @@ int main() {
     // test_shared_memory();
 
 
-    for (size_t i = 0; i < 1000; i++)
-    {
-        thread([=]() {
-            std::cout << "start: " << i << "\n";
-            sleep(10);
-        }).detach();
-    }
-    
-    sleep(20);
-
     return 0;
 
 
