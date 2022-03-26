@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <string.h>
 
+namespace Crypto {
+
 typedef uint8_t byte;
 
 class AES {
@@ -36,17 +38,18 @@ private:
     uint8_t m_state[16];
     byte m_expanded_key[60][4];
 
+    void SubWord(byte * word);
+    void RotWord(byte * word);
+
+    void SubBytes();
+    void InvSubBytes();
+    void ShiftRows();
+    void InvShiftRows();
+    void MixColumns(bool inverse);
+
     void AddRoundKey(byte round);
     void KeySchedule();
 
-    void MixColumns();
-    void InvMixColumns();
-    void ShiftRows();
-    void InvShiftRows();
-    void SubBytes();
-    void InvSubBytes();
-
-    void RotWord(byte * word);
-    void SubWord(byte * word);
-
 };
+
+}

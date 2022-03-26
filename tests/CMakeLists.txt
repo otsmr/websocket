@@ -32,7 +32,7 @@ set_tests_properties(sha1_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 # TEST aes
 add_executable(
     aes_test aes_test.cpp
-    ../src/aes/aes.cpp
+    ../src/crypto/aes.cpp
 )
 target_include_directories(aes_test PRIVATE "../src")
 add_test(aes_test aes_test 0)
