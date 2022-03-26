@@ -45,62 +45,6 @@ const byte InvSBox[16][16] = {
     {0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d}
 };
 
-void print_state(byte * state) {
-
-    for (char i = 0; i < 16; i++)
-    {
-        printf("%02x", state[i]);
-    }
-    printf("\n");
-
-
-    return;
-    
-    for (byte x = 0; x < 4; x++)
-    {
-        printf("%d [", x);
-        for (byte y = 0; y < 4; y++)
-        {
-            printf("%02x", state[(y*4) + x]);
-            if (y <= 2)
-                printf(" ");
-        }
-        printf("]\n");
-    }
-
-};
-
-byte g_mul(byte a, byte b) {
-
-    byte k[8]{};
-
-    for (byte i = 0; i < 8; i++)
-    {
-        k[i] = a * (0b1 << (i+1)) & 0xff;
-        if (i >= 1) {
-            if ((k[i-1] >> 7) == 0b1) {
-                k[i] = k[i] ^ 0b00011011;
-            }
-        }
-    }
-
-    byte c = 0b0;
-
-    if ((b & 0b1) == 0b1) {
-        c ^= a;
-    }
-
-    for (byte i = 0; i < 8; i++)
-    {
-        if((b >> (i+1) & 0b1) == 0b1) {
-            c ^= k[i];
-        }
-    }
-    
-    return c;
-
-}
-
 byte gmult(byte a, byte b) {
 	byte p = 0, i = 0, hbs = 0;
 	for (i = 0; i < 8; i++) {
@@ -226,25 +170,13 @@ void AES::MixColumns(bool inverse) {
     for (byte column = 0; column < 4; column++)
     {
         for (byte row = 0; row < 4; row++)
-        {
-            
+        {   
             for (byte matrix_column = 0; matrix_column < 4; matrix_column++)
             {
-                // if (matrix_column > 0)
-                //     printf(" + ");
-
-
-                byte a = gmult(matrix[(row*4)+matrix_column], m_state[matrix_column + (4*column)]);
-
-                tmp_matrix[row + (4*column)] ^= a;
-                // printf("(%x[%d] * %x [%x])", matrix[(row*4)+matrix_column], (row*4)+matrix_column, m_state[column + (4*matrix_column)], a);
-                // printf("%d", a);
-            }
-
-            // printf(" = %x\n", tmp_matrix[row + (4*column)]);
-            
+                tmp_matrix[row + (4*column)] ^= 
+                    gmult(matrix[(row*4)+matrix_column], m_state[matrix_column + (4*column)]);
+            }   
         }
-        
     }
     
     memcpy(m_state, tmp_matrix, 16);
@@ -253,20 +185,14 @@ void AES::MixColumns(bool inverse) {
 
 void AES::AddRoundKey(byte round) {
 
-    printf("round[%d].ik_sch = ", 10-round);
-
     for (byte x = 0; x < 4; x++)
     {
         for (byte y = 0; y < 4; y++) {
             m_state[(x*4) + y] = m_state[(x*4) + y] ^ m_expanded_key[(round*4)+x][y];   
-            printf("%x", m_expanded_key[(round*4)+x][y]);
         }
     }
 
-    printf("\n");
-
 }
-
 
 void AES::update_key(byte * key) {
 
@@ -279,44 +205,16 @@ void AES::update_key(byte * key) {
 
     memcpy(m_expanded_key, key, 32);
 
-    // for (size_t i = 0; i < 4; i++)
-    // {
-    //     printf("w%zu = ", i);
-    //     for (size_t j = 0; j < 4; j++) 
-    //         printf("%2x", m_expanded_key[i][j]);
-    //     printf("\n");
-    // }
-
     for (size_t i = Nk; i < 4*(Nr+1); i++)
     {
         memcpy(temp, m_expanded_key[i-1], 4);
 
-        // printf("temp = ");
-        // for (size_t j = 0; j < 4; j++)
-        //     printf("%2x", temp[j]);
-        // printf("\n");
-
         if (i % Nk == 0) {
 
             RotWord(temp);
-            // printf("after RotWord() = ");
-            // for (size_t j = 0; j < 4; j++)
-            //     printf("%2x", temp[j]);
-            // printf("\n");
-
             SubWord(temp);
-
-            // printf("after SubWord() = ");
-            // for (size_t j = 0; j < 4; j++)
-            //     printf("%2x", temp[j]);
-            // printf("\n");
             
             temp[0] ^= Rcon[i/Nk-1];
-
-            // printf("after XOR with Rcon %2x = ");
-            // for (size_t j = 0; j < 4; j++)
-            //     printf("%2x", temp[j]);
-            // printf("\n");
 
         } else if (Nk > 6 && i % Nk == 4) {
             SubWord(temp);
@@ -334,25 +232,14 @@ bool AES::encrypt(byte * input, byte * output) {
 
     byte rounds = m_blocksize / 32 + 6;
 
-    // printf("\n\n--- RUNDE 0 ----\n\n");
-    // print_state(m_state);
     AddRoundKey(0);
 
     for (byte round = 1; round <= rounds; round++)
     {
-        // printf("\n\n--- RUNDE %d ----\n\n", round);
-        // print_state(m_state);
         SubBytes();
-        // printf("After SubBytes()\n");
-        // print_state(m_state);
-
         ShiftRows();
-        // printf("After ShiftRows()\n");
-        // print_state(m_state);
         if (round <= rounds-1) {
             MixColumns(false);
-            // printf("After MixColumns()\n");
-            // print_state(m_state);
         }
         AddRoundKey(round);
     }
@@ -370,29 +257,13 @@ bool AES::decrypt(byte * input, byte * output) {
 
     byte rounds = m_blocksize / 32 + 6;
 
-    printf("----\n");
-    printf("round[0].iinput = ");
-    print_state(m_state);
     AddRoundKey(rounds);
 
     for (char round = (rounds-1); round >= 0; round--)
     {
-        printf("round[%d].istart = ", 10-round);
-        print_state(m_state);
-        
         InvShiftRows();
-        printf("round[%d].is_row = ", 10-round);
-        print_state(m_state);
-        
-        
         InvSubBytes();
-        printf("round[%d].is_box = ", 10-round);
-        print_state(m_state);
-
         AddRoundKey(round);
-        printf("round[%d].ik_add = ", 10-round);
-        print_state(m_state);
-        
         if (round >= 1) {
             MixColumns(true);
         }
