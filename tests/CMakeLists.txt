@@ -56,16 +56,14 @@ target_include_directories(sha384_test PRIVATE "../src")
 add_test(sha384_test sha384_test 0)
 set_tests_properties(sha384_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 
-# TEST ecdsa-p256
+# TEST x25519
 add_executable(
-    ecdsa-p256_test ecdsa-p256_test.cpp
-    ../src/tls13/ecdsa-p256.cpp
-    ../src/base64/base64.cpp
-    ../src/hash/sha256.cpp
+    x25519_test curve-x25519.cpp
+    ../src/crypto/curve-x25519.cpp
 )
-target_include_directories(ecdsa-p256_test PRIVATE "../src")
-add_test(ecdsa-p256_test ecdsa-p256_test 0)
-set_tests_properties(ecdsa-p256_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+target_include_directories(x25519_test PRIVATE "../src")
+add_test(x25519_test x25519_test 0)
+set_tests_properties(x25519_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 
 # TEST websocket frames
 add_executable(

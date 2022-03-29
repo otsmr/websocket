@@ -13,13 +13,14 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - [WS: HTTP-Header](https://datatracker.ietf.org/doc/html/rfc2616)
 - [TLS: SHA256](https://datatracker.ietf.org/doc/html/rfc6234)
 - [TLS: SHA384](https://datatracker.ietf.org/doc/html/rfc6234)
+- [TLS: AES](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf)
 ### work in progress
 - [TLSv1.3](https://datatracker.ietf.org/doc/html/rfc8446) (with [Modern compatibility](https://wiki.mozilla.org/Security/Server_Side_TLS))
 - Certificate type: [TLS: ECDSA (P-256)]()
 - Cipher suite: [TLS: AES_128_GCM]()
 - Cipher suite: [TLS: AES_256_GCM]()
 - Cipher suite: [TLS: HACHA20_POLY1305]()
-- TLS curves: [TLS: X25519]()
+- Key exchange protocol: [TLS: X25519]() 
 - Beispiel: > https://github.com/SerenityOS/serenity/pull/12493
 - Beispiel: > https://github.com/SerenityOS/serenity/pull/12605
 - TLS curves: [TLS: prime256v1]()
@@ -35,7 +36,12 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - CMake 3.22.1 `brew install cmake`
 - A C++17 compatibler compiler
 
-# build
+# build & run
 ```
-cmake --build .
+./build.sh run
+```
+
+# build & test
+```
+./build.sh test [aes]
 ```
