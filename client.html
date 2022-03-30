@@ -74,10 +74,9 @@
             let count = 0;
             for (let i = 0; i < 10000; i++) {
                 if ((i % 26) == 0 && i > 0) {
-                    // message += " (" + String(message.length) + ")\n";
+                    message += " (" + String(message.length) + ")\n";
                 }
-                // message += String.fromCharCode((i) % 26 + 65)
-                message += String(i) + " ";
+                message += String.fromCharCode((i) % 26 + 65)
             }
             console.log("Total length of message:", message.length);
             message += "\nTotal length of message: " + message.length + "\n";
@@ -94,7 +93,7 @@
             }, 1000*5);
         }
         function send () {
-            socket.send(message.value);
+            socket.send(document.getElementById("message").value);
         }
 
         function connect () {

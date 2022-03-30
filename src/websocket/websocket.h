@@ -28,7 +28,7 @@
 
 class WebSocket;
 
-typedef std::function<void(WebSocket *, std::string)> fkt_string;
+typedef std::function<void(std::string)> fkt_string;
 
 class WebSocket {
 public:

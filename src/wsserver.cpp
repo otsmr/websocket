@@ -36,13 +36,13 @@ int main () {
         char option = 0;
         Socket socket(ports[p]);
 
-        socket.on_open([](auto ws) {
+        socket.on_open([](auto * ws) {
 
             std::cout << "[WebSocket " << ws->connection() << "] connected\n";
 
-            ws->on_message([](auto ws, std::string message) {
+            ws->on_message([ws](std::string message) {
 
-                // std::cout << "[WebSocket " << "] Message: " << message << "\n";
+                std::cout << "[WebSocket " << "] Message: " << message << "\n";
                 ws->send_message("Hello back!");
 
             });

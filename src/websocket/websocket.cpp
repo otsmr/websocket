@@ -42,7 +42,7 @@ void WebSocket::handle_frame(DataFrame frame)
     // case DataFrame::BinaryFrame:
     case DataFrame::TextFrame:
 
-        //m_framequeue.push_back(frame);
+        m_framequeue.push_back(frame);
 
         if (!frame.m_fin)
             return;
@@ -67,13 +67,13 @@ void WebSocket::handle_text_frame () {
 
     std::string message;
 
-    // for (DataFrame& f : m_framequeue)
-    //     message += f.get_utf8_string();
+    for (DataFrame& f : m_framequeue)
+        message += f.get_utf8_string();
 
     // message = m_framequeue[0].get_utf8_string();
 
     if (m_on_message != nullptr)
-        m_on_message(this, message);
+        m_on_message(message);
 
 #if DEBUG_LEVEL >= 7
 
