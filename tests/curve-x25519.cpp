@@ -11,7 +11,7 @@ void test_x25519() {
 
     Point A = {5, 1};
 
-    point_addition(A, A);
+    Point C = point_addition(A, A);
 
     printf("\nFAILED");
     return;
