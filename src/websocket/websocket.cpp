@@ -13,13 +13,16 @@ WebSocket::WebSocket(int connection)
 void WebSocket::send_message(std::string message) {
 
     std::vector<uint8_t> raw_frame = DataFrame::get_text_frame(message).get_raw_frame();
+
+#if !COMPILE_FOR_FUZZING
     send(m_connection, raw_frame.data(), raw_frame.size(), 0);
+#endif
 
 }
 
 void WebSocket::handle_frame(DataFrame frame)
 {
-    
+
     switch (frame.m_opcode)
     {
 
@@ -41,6 +44,8 @@ void WebSocket::handle_frame(DataFrame frame)
 
     // case DataFrame::BinaryFrame:
     case DataFrame::TextFrame:
+
+        
 
         m_framequeue.push_back(frame);
 
@@ -106,7 +111,9 @@ void WebSocket::send_pong_frame() {
 
     std::vector<uint8_t> raw_frame = pong_frame.get_raw_frame();
 
+#if !COMPILE_FOR_FUZZING
     send(m_connection, raw_frame.data(), raw_frame.size(), 0);
+#endif
 
 }
 
@@ -146,7 +153,9 @@ void WebSocket::listen()
 
     m_state = State::WaitingForHandshake;
 
+#if USEFORK
     check_for_keep_alive();
+#endif
 
     uint8_t buffer[MAX_PACKET_SIZE];
     DataFrame last_frame;
@@ -154,29 +163,42 @@ void WebSocket::listen()
     size_t offset;
     int bytes_read;
 
-    while (0 < (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE))) {
+    while (0 < (bytes_read = read(m_connection, buffer, MAX_PACKET_SIZE)))
+    {
 
-        if (bytes_read == 0) {
+        offset = 0;
+
+        if (bytes_read == 0)
+        {
             close(true);
             break;
         }
 
         if (m_state < State::WaitingForHandshake)
+        {
             break;
+        }
 
-        if (m_state == State::WaitingForHandshake) {
-            
-            if (!handshake(buffer)) {
+        if (m_state == State::WaitingForHandshake)
+        {
+
+            offset = handshake(buffer, bytes_read);
+
+            if (m_state != State::Connected)
+            {
                 close(true);
                 return;
             }
 
-            m_state = State::Connected;
-            continue;
-
+#if !COMPILE_FOR_FUZZING
+            continue; // the websocket handshake has no body data
+#else
+            if (offset >= bytes_read) {
+                continue;
+            }
+#endif
+            
         }
-
-        offset = 0;
 
         if (m_state == State::InDataPayload) {
 
@@ -218,19 +240,23 @@ void WebSocket::listen()
     
 }
 
-bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
+size_t WebSocket::handshake(uint8_t * buffer, size_t bytes_read) {
 
-    std::vector<uint8_t> raw_data(buffer, buffer+MAX_PACKET_SIZE);
+    std::vector<uint8_t> raw_data(buffer, buffer+bytes_read);
 
     HTTP::Request request;
-    request.init_from_raw_request(raw_data);
+    size_t header_offset = request.init_from_raw_request(raw_data);
 
     /* The value of this header field MUST be a
      * nonce consisting of a randomly selected 16-byte value that has
      * been base64-encoded.
      */
     char sec_key[24+37]{};
-    strncpy(sec_key, request.get_header("sec-websocket-key").value.c_str(), 24);
+    std::string sec_websocket_key = request.get_header("sec-websocket-key").value;
+    if (sec_websocket_key.size() != 24) {
+        return 0;
+    }
+    strncpy(sec_key, sec_websocket_key.c_str(), 24);
     strncpy(sec_key+24, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11\00", 37);
 
     uint8_t sha1_hash[20];
@@ -257,9 +283,13 @@ bool WebSocket::handshake(uint8_t buffer[MAX_PACKET_SIZE]) {
 
     std::vector<uint8_t> raw = response.get_raw_response();
 
+#if !COMPILE_FOR_FUZZING
     send(m_connection, raw.data(), raw.size(), 0);
+#endif
 
-    return true;
+    m_state = State::Connected;
+
+    return header_offset;
 
 }
 
@@ -288,7 +318,10 @@ void WebSocket::close(bool close_frame_received) {
         frame.m_application_data.push_back((statuscode & 0xff));
 
         std::vector<uint8_t> raw_res = frame.get_raw_frame();
+
+#if !COMPILE_FOR_FUZZING
         send(m_connection, raw_res.data(), raw_res.size(), 0);
+#endif
 
     }
 

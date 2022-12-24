@@ -19,6 +19,15 @@ if [ "$1" == "run" ]; then
 
 fi
 
+if [ "$1" == "fuzz" ]; then
+
+    echo "-----------------------"
+    pkill wsserver
+    ./build/wsserver ../corpus/con_big
+    ./build/wsserver ../corpus/con_small
+    echo ""
+fi
+
 if [ "$1" == "test" ]; then
     cd build
     if [ "$2" != "" ]; then

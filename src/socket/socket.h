@@ -15,7 +15,13 @@
 #include <thread>
 #include <functional>
 
-#include "../websocket/websocket.h"
+#include "flags.h"
+
+#if COMPILE_FOR_FUZZING
+#include <fcntl.h>
+#endif 
+
+#include "websocket.h"
 
 typedef std::function<void(WebSocket *)> fkt_ws;
 
@@ -33,7 +39,12 @@ public:
         Stopped
     };
 
+#if USEFORK
     bool listen(bool async);
+#else
+    bool listen();
+#endif
+
     void stop();
 
     int port() const { return m_port; };

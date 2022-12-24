@@ -41,7 +41,7 @@ public:
     Header get_header(const std::string& name);
     std::vector<std::string> header_value_as_array(std::string name);
 
-    void init_from_raw_request(std::vector<uint8_t> raw_request);
+    size_t init_from_raw_request(std::vector<uint8_t> raw_request);
 
 private:
 
