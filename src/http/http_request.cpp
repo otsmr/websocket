@@ -3,7 +3,7 @@
  * 
  */
 
-#include "request.h"
+#include "http_request.h"
 
 namespace HTTP {
 
@@ -38,7 +38,7 @@ std::vector<std::string> Request::header_value_as_array(std::string name) {
 
 }
 
-void Request::init_from_raw_request(std::vector<uint8_t> raw_request)
+size_t Request::init_from_raw_request(std::vector<uint8_t> raw_request)
 {
 
     enum State {
@@ -47,6 +47,7 @@ void Request::init_from_raw_request(std::vector<uint8_t> raw_request)
         InProtocol,
         InHeaderName,
         InHeaderValue,
+        InBody
     };
 
     State state = {
@@ -99,6 +100,8 @@ void Request::init_from_raw_request(std::vector<uint8_t> raw_request)
                 buffer.push_back(at());
                 break;
             case State::InHeaderName:
+                if (at() == '\r')
+                    index++;
                 if (at() == ':') {
                     index++;
                     header.name.clear();
@@ -123,20 +126,26 @@ void Request::init_from_raw_request(std::vector<uint8_t> raw_request)
                 }
                 buffer.push_back(at());
                 break;
+            case State::InBody:
+                break;
         }
 
         if (at() == '\r')
             index++;
-
-        if (at() == '\n' && ((at(1) == '\n') || at(1) == '\r')) 
-            break; // body
-
+        
         index++;
+
+        if (at(-1) == '\n')
+            break; // body
 
     }
 
     if (method == "GET")
+    {
         m_method = Method::GET;
+    }
+
+    return index;
     
 }
 

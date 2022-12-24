@@ -1,7 +1,7 @@
 # from scratch
 Implementing the WebSocket protocol in C++ from scratch. 
 
-# goals
+# goal
 The primary goal is **to learn C++ on a project**. The goal is to implement the **WebSocket** protocol from scratch. I like to implement everything I need to do this myself, like SHA-1.  
 Finally, once I have implemented all the MUST requirements, I want to find security vulnerabilities in my implementation (one is currently becoming a new CTF Challenge :^)), as well as intentionally add a few of my own to make CTFs challenges.
 
@@ -20,16 +20,22 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - Make more stable (add more tests etc.)
 - node.js wrapper
 
-# requirements
+
+# getting started
+## requirements
 - CMake 3.22.1 `brew install cmake`
 - A C++17 compatibler compiler
 
-# build & run
+## build & run
 ```
 ./build.sh run
 ```
 
-# build & test
+## build & test
 ```
 ./build.sh test [sha1]
 ```
+
+# Security
+
+See [Security.md](SECURITY.md).

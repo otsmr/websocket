@@ -3,7 +3,7 @@
  * 
  */
 
-#include "frame.h"
+#include "dataframe.h"
 
 size_t DataFrame::add_payload_data(uint8_t buffer[MAX_PACKET_SIZE], int offset, size_t buffer_size) {
 
@@ -120,7 +120,9 @@ size_t DataFrame::parse_raw_frame(uint8_t buffer[MAX_PACKET_SIZE], size_t buffer
     if (m_payload_len_bytes == 127) {
 
         if (buffer[header_end] >> 7) {
+#if DEBUG_LEVEL >= 4
             std::cout << "\nthe most significant bit MUST be 0\n";
+#endif
             buffer[header_end] = 0;
         }
 

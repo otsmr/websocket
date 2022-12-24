@@ -16,12 +16,12 @@
 #include <fstream>
 #include <functional>
 
-#include "../http/response.h"
-#include "../http/request.h"
-#include "../hash/sha1.h"
-#include "../base64/base64.h"
-
-#include "frame.h"
+#include "http_response.h"
+#include "http_request.h"
+#include "sha1.h"
+#include "base64.h"
+#include "flags.h"
+#include "dataframe.h"
 
 #define MAX_PACKET_SIZE 4096
 #define CONNECTION_TIMEOUT_SECONDS 5
@@ -86,7 +86,7 @@ private:
     fkt_string m_on_message = nullptr;
 
     // open handshake with client  (rfc6455 section-4.2.2)
-    bool handshake(uint8_t buffer[MAX_PACKET_SIZE]);
+    size_t handshake(uint8_t * buffer, size_t bytes_read);
 
     // sends a ping to the client every 20s
     void check_for_keep_alive();

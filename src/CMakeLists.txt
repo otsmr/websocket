@@ -21,14 +21,22 @@ add_executable(wsserver
   
   hash/sha1.cpp
   
-  http/request.cpp
-  http/response.cpp
+  http/http_request.cpp
+  http/http_response.cpp
   
   socket/socket.cpp
 
-  websocket/frame.cpp
+  websocket/dataframe.cpp
   websocket/websocket.cpp
   
 )
 
+target_include_directories(wsserver PRIVATE 
+  "./"
+  "./socket"
+  "./websocket"
+  "./http"
+  "./base64"
+  "./hash"
+)
 target_link_libraries(wsserver PRIVATE Threads::Threads)
