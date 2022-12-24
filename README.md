@@ -26,6 +26,13 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - CMake 3.22.1 `brew install cmake`
 - A C++17 compatibler compiler
 
+## check compile options in flags.h (!)
+
+```c
+#define COMPILE_FOR_FUZZING 0
+#define ARTIFICIAL_BUGS     0
+```
+
 ## build & run
 ```
 ./build.sh run
@@ -38,4 +45,5 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 
 # Security
 
-See [Security.md](SECURITY.md).
+- fuzzing (see [SECURITY](SECURITY.md))
+- exploiting wsserver (`ARTIFICIAL_BUGS=1`)

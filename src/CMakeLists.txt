@@ -12,6 +12,14 @@ project(
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "./build")
 set(CMAKE_CXX_STANDARD 14)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+include_directories( 
+  "./"
+  "./socket"
+  "./websocket"
+  "./http"
+  "./base64"
+  "./hash"
+)
 find_package(Threads REQUIRED)
 
 add_executable(wsserver
@@ -31,12 +39,5 @@ add_executable(wsserver
   
 )
 
-target_include_directories(wsserver PRIVATE 
-  "./"
-  "./socket"
-  "./websocket"
-  "./http"
-  "./base64"
-  "./hash"
-)
+
 target_link_libraries(wsserver PRIVATE Threads::Threads)

@@ -17,8 +17,6 @@
 typedef u_int8_t uint8_t;
 #endif
 
-// #include "WebSocket.h"
-
 class DataFrame {
 public:
 

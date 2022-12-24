@@ -4,7 +4,7 @@
  */
 
 #include <stdlib.h>
-#include "websocket/frame.h"
+#include "websocket/dataframe.h"
 
 #ifdef __linux__
 typedef u_int8_t uint8_t;

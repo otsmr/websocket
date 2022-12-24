@@ -6,6 +6,14 @@ project(
 cmake_minimum_required(VERSION 3.11)
 
 set(CMAKE_CXX_STANDARD 14)
+include_directories( 
+  "./"
+  "./socket"
+  "./websocket"
+  "./http"
+  "./base64"
+  "./hash"
+)
 
 include_directories("../src/")
 
@@ -32,7 +40,7 @@ set_tests_properties(sha1_test PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 # TEST websocket frames
 add_executable(
     dataframe_test dataframe_test.cpp
-    ../src/websocket/frame.cpp
+    ../src/websocket/dataframe.cpp
 )
 target_include_directories(dataframe_test PRIVATE "../src")
 add_test(dataframe_test dataframe_test 0)
