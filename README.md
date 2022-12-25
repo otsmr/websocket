@@ -1,8 +1,8 @@
 # from scratch
-Implementing the WebSocket protocol in C++ from scratch. 
+Implementing the WebSocket protocol in C++ and Rust from scratch. 
 
 # goal
-The primary goal is **to learn C++ on a project**. The goal is to implement the **WebSocket** protocol from scratch. I like to implement everything I need to do this myself, like SHA-1.  
+The primary goal is **to learn stuff on a project**. The goal is to implement the **WebSocket** protocol from scratch. I like to implement everything I need to do this myself, like SHA-1.  
 Finally, once I have implemented all the MUST requirements, I want to find security vulnerabilities in my implementation (one is currently becoming a new CTF Challenge :^)), as well as intentionally add a few of my own to make CTFs challenges.
 
 ## standards
@@ -45,5 +45,9 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 
 # Security
 
-- fuzzing (see [SECURITY](SECURITY.md))
+## Rust
+- implement
+
+## CPP implementation
+- fuzzing (see [cpp/SECURITY](cpp/SECURITY.md))
 - exploiting wsserver (`ARTIFICIAL_BUGS=1`)

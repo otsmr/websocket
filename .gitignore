@@ -6,3 +6,5 @@ buffer.txt
 cmake-build-debug/
 .idea
 test/
+Cargo.lock
+target/

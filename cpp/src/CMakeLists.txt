@@ -12,6 +12,7 @@ project(
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "./build")
 set(CMAKE_CXX_STANDARD 14)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
+# add_compile_options("-fno-stack-protector")
 include_directories( 
   "./"
   "./socket"

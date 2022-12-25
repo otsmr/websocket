@@ -9,7 +9,7 @@
 #define COMPILE_FOR_FUZZING 1
 #define ARTIFICIAL_BUGS     1 // to be sure that the fuzzer can find some bugs :^)
 
-#define NOFORK  (COMPILE_FOR_FUZZING == 1)
+#define NOFORK  (COMPILE_FOR_FUZZING)
 
 #define DEBUG_LEVEL 7
 // --
@@ -27,7 +27,7 @@ enum DebugLevel {
     Debug,          // debug 
 };
 
-#define USEFORK (NOFORK == 0)
+#define USEFORK (!NOFORK)
 
 #if COMPILE_FOR_FUZZING
 extern char * g_fuzzing_input_file;
