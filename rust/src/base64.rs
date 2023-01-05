@@ -10,12 +10,12 @@ pub fn encode(input: &Vec<u8>) -> String {
     let mut add = 0;
 
     while input.len() > index {
-        
+
         for i in 0..3 {
             if input.len() <= i+index{
                 tmp[i] = 0x0;
                 add+=1;
-            } else {    
+            } else {
                 tmp[i] = input[index+i];
             }
         }
@@ -33,10 +33,8 @@ pub fn encode(input: &Vec<u8>) -> String {
 
     }
 
-    for _ in 0..add  {
-        out.push('=');
-    }
-    
+    out.resize(out.len()+add, '=');
+
     out.iter().collect()
 
 }
