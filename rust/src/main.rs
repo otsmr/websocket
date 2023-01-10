@@ -1,4 +1,5 @@
 mod websocket;
+mod http_parser;
 use log::info;
 // use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use websocket::{Message, MessageKind, WebSocket};

@@ -6,6 +6,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 
+use crate::http_parser::{self, parse_http_header};
+
 #[derive(Debug)]
 pub enum MessageKind {
     String = 0,
@@ -18,8 +20,17 @@ pub struct Message {
     pub string: String,
 }
 
+enum WSCState {
+    Disconnected = 0,
+    Closing,
+    WaitingForConnection = 10,
+    Connected,
+    InDataPayload,
+}
+
 pub struct WebSocketConnection {
     socket: Arc<Mutex<TcpStream>>,
+    state: WSCState,
     pub on_message_fkt: Vec<fn(&mut Self, Message) -> ()>,
 }
 
@@ -64,6 +75,20 @@ impl WebSocketConnection {
                 }
             };
 
+            match self.state {
+                WSCState::Connected => (),
+                WSCState::WaitingForConnection => {
+                    if let Ok(offset) = self.do_handshake(&buf[..n]).await {
+                        if offset >= n {
+                            continue;
+                        }
+                    } else {
+                        break;
+                    };
+                }
+                _ => break,
+            }
+
             let on_messages = self.on_message_fkt.clone();
             for on_message in on_messages.iter() {
                 let msg = Message {
@@ -73,7 +98,29 @@ impl WebSocketConnection {
                 on_message(self, msg);
             }
         }
+
+        // self.close()
         Ok(())
+    }
+
+    async fn do_handshake(&self, buf: &[u8]) -> Result<usize, io::Error> {
+        let http_header = parse_http_header(buf.to_vec())?;
+
+
+        let websocket_key = http_header.fields.get("sec-websocket-key");
+
+        // FIMXE: learn how this is done in a better way
+        if websocket_key.is_none() || websocket_key.unwrap().len() != 24 {
+            return Err(io::Error::new(
+                    io::ErrorKind::ConnectionAborted,
+                    "not a valid websocket connection request",
+            ));
+        }
+        let websocket_key = websocket_key.unwrap();
+
+        info!("Connected with the key {}", websocket_key);
+
+        Ok(0)
     }
 }
 
@@ -129,6 +176,7 @@ impl WebSocket {
                     let socket = Arc::new(Mutex::new(socket));
                     let mut con = WebSocketConnection {
                         socket,
+                        state: WSCState::WaitingForConnection,
                         on_message_fkt: vec![],
                     };
                     let on_connections = self.on_connection_fkt.clone();
