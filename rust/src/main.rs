@@ -1,8 +1,8 @@
-    //                 // socket closed
 mod websocket;
+mod http_parser;
 use log::info;
 // use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use websocket::{WebSocket, Message, MessageKind};
+use websocket::{Message, MessageKind, WebSocket};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,13 +17,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("new client connected");
 
         wsc.on_message(|wsc, message| {
-            info!("New Message: {}", message.string);
+            info!("New Message: {}", message.string.trim());
             wsc.send_message(Message {
                 kind: MessageKind::String,
-                string: "Hallo Welt!".to_string()
+                string: "Hallo Welt!\n".to_string(),
             });
         });
-
     });
 
     ws.listen().await;
