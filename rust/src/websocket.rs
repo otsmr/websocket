@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 
-use crate::http_parser::{self, parse_http_header};
+use crate::http_parser::parse_http_header;
 
 #[derive(Debug)]
 pub enum MessageKind {
@@ -21,11 +21,11 @@ pub struct Message {
 }
 
 enum WSCState {
-    Disconnected = 0,
-    Closing,
+    // Disconnected = 0,
+    // Closing,
     WaitingForConnection = 10,
     Connected,
-    InDataPayload,
+    // InDataPayload,
 }
 
 pub struct WebSocketConnection {
@@ -44,7 +44,10 @@ impl WebSocketConnection {
         // FIXME: is tokio::spawn really necessary?
         tokio::spawn(async move {
             let mut socket = socket.lock().await;
-            socket.write(msg.string.as_bytes()).await;
+            if let Err(e) = socket.write(msg.string.as_bytes()).await {
+                error!("failed to write to the socket: {}", e);
+                // TODO: maybe closing the socket?
+            }
             // match msg.kind {
             //     MessageKind::String => {
             //     }
@@ -63,7 +66,6 @@ impl WebSocketConnection {
         let mut buf = [0; 1024];
 
         let socket = Arc::clone(&self.socket);
-        // In a loop, read data from the socket and write the data back.
         loop {
             let mut socket = socket.lock().await;
             let n = match socket.read(&mut buf).await {
@@ -86,7 +88,7 @@ impl WebSocketConnection {
                         break;
                     };
                 }
-                _ => break,
+                // _ => break,
             }
 
             let on_messages = self.on_message_fkt.clone();
