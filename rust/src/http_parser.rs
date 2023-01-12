@@ -9,6 +9,7 @@ use std::{collections::HashMap, io};
 pub struct HttpHeader {
     pub method: String,
     // pub url: Url,
+    pub status_code: usize,
     pub resource: String,
     pub fields: HashMap<String, String>,
 }
@@ -23,9 +24,49 @@ impl HttpHeader {
             //     path: "".to_string(),
             //     query: "".to_string(),
             // },
+            status_code: 0,
             resource: "".to_string(),
             fields: HashMap::new(),
         }
+    }
+    pub fn response_101() -> Self {
+        let mut h = HttpHeader::new();
+        h.status_code = 101;
+        h.fields = HashMap::from([
+            ("Upgrade".to_string(), "websocket".to_string()),
+            ("Connection".to_string(), "Upgrade".to_string()),
+            ("Sec-WebSocket-Version".to_string(), "13".to_string()),
+        ]);
+        h
+    }
+    pub fn response_400() -> Self {
+        let mut h = HttpHeader::new();
+        h.status_code = 400;
+        h
+    }
+    fn status_code_as_string(&self) -> &str {
+        match self.status_code {
+            101 => "Switching Protocols",
+            400 => "Bad Request",
+            _ => "Unkown Error",
+        }
+    }
+    fn as_string(&self) -> String {
+        let mut ret = format!(
+            "HTTP/1.1 {} {}\r\n",
+            self.status_code,
+            self.status_code_as_string()
+        );
+
+        for (k, v) in self.fields.iter() {
+            ret.push_str(&format!("{}: {}\r\n", k, v));
+        }
+
+        ret.push_str("\r\n");
+        ret
+    }
+    pub fn as_vec(&self) -> Vec<u8> {
+        self.as_string().into_bytes()
     }
 }
 
