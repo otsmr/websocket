@@ -3,7 +3,7 @@ use std::{collections::HashMap, io};
 // pub struct Url {
 //     pub protocol: String,
 //     pub host: String,
-//     pub path: String,
+
 //     pub query: String,
 // }
 pub struct HttpHeader {
@@ -158,11 +158,6 @@ Host: tsmr.eu
 
         assert!(actual.fields.contains_key("host"));
         assert_eq!(actual.fields.get("host"), Some(&"tsmr.eu".to_string()));
-        assert_eq!(actual.method, "GET".to_string());
-        assert_eq!(actual.method, "GET".to_string());
-        assert_eq!(actual.method, "GET".to_string());
-        assert_eq!(actual.method, "GET".to_string());
-        assert_eq!(actual.method, "GET".to_string());
         assert_eq!(actual.method, "GET".to_string());
     }
 }
