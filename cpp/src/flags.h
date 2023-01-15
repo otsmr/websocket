@@ -1,13 +1,13 @@
 /*
  * Copyright (c) 2022, Tobias <git@tsmr.eu>
- * 
+ *
  */
 
 #pragma once
 
 // -- compile options
-#define COMPILE_FOR_FUZZING 1
-#define ARTIFICIAL_BUGS     1 // to be sure that the fuzzer can find some bugs :^)
+#define COMPILE_FOR_FUZZING 0
+#define ARTIFICIAL_BUGS     0 // to be sure that the fuzzer can find some bugs :^)
 
 #define NOFORK  (COMPILE_FOR_FUZZING)
 
@@ -24,7 +24,7 @@ enum DebugLevel {
     Warnings,       // warn
     Notification,   // notice
     Information,    // info
-    Debug,          // debug 
+    Debug,          // debug
 };
 
 #define USEFORK (!NOFORK)

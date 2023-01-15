@@ -7,7 +7,8 @@ Accept-Encoding: gzip, deflate, br
 Sec-WebSocket-Version: 13
 Origin: null
 Sec-WebSocket-Extensions: permessage-deflate
-Sec-WebSocket-Key: KH+BCPsotkzHpQCx8++w3w==
+Sec-WebSocket-Key: PeRooKD8VzAlpSRYZFjt1g==
+X-Sec-WebSocket-Key-Response: YmdBApuy8SLtn0kkJIUiOnkBGzU=
 DNT: 1
 Connection: keep-alive, Upgrade
 Sec-Fetch-Dest: websocket

@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting WebSocket!");
 
-    let mut ws = WebSocket::bind(vec!["127.0.0.1:8080".parse().unwrap()]).await?;
+    let mut ws = WebSocket::bind(vec!["127.0.0.1:3000".parse().unwrap()]).await?;
     // info!("Listening on {}", ws.addr.unwrap());
 
     ws.on_connection(|wsc| {

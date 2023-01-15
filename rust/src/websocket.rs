@@ -4,10 +4,12 @@ use std::sync::Arc;
 use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::watch::error;
 use tokio::sync::Mutex;
 
 use crate::base64;
 use crate::http_parser::{parse_http_header, HttpHeader};
+use crate::sha1::sha1;
 
 #[derive(Debug)]
 pub enum MessageKind {
@@ -94,6 +96,7 @@ impl WebSocketConnection {
                     if socket.write(&http_response.as_vec()).await.is_ok()
                         && http_response.status_code == 101
                     {
+                        error!("Send Handshake");
                         self.state = WSCState::Connected;
                         continue;
                     }
@@ -118,22 +121,20 @@ impl WebSocketConnection {
                 return HttpHeader::response_400();
             }
 
-            let websocket_key = websocket_key.unwrap();
-            info!("Connected with the key {}", websocket_key);
+            let mut request_key = websocket_key.unwrap().as_bytes().to_vec();
 
-            let mut sha1_websocket_key = websocket_key.clone().into_bytes();
-            // TODO: create sha1 hash of the websocket_key
+            request_key.append(&mut b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11".to_vec());
 
-            let mut sha1_key = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11".to_vec();
-            sha1_key.append(&mut sha1_websocket_key);
-
-            let b64_key = base64::encode(&sha1_key);
+            let response_key = sha1(request_key).to_vec();
+            let response_key = base64::encode(&response_key);
+            error!("Key should be YmdBApuy8SLtn0kkJIUiOnkBGzU=");
+            error!("Key is {}", response_key);
 
             let mut response = HttpHeader::response_101();
 
             response
                 .fields
-                .insert("Sec-WebSocket-Accept".to_string(), b64_key);
+                .insert("Sec-WebSocket-Accept".to_string(), response_key);
 
             return response;
         }
@@ -187,7 +188,10 @@ impl WebSocket {
     }
 
     pub async fn listen(&self) {
-        info!("Waiting for connections!");
+        let addr = self.listener.local_addr();
+        if let Ok(addr) = addr {
+            info!("Waiting for connections at {}!", addr);
+        }
         loop {
             match self.listener.accept().await {
                 Ok((socket, _addr)) => {

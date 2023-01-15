@@ -1,10 +1,13 @@
 
+fn s(w: u32, n: u32) -> u32 {
+    (w << n) | (w >> (32-n))
+}
 
 pub fn sha1(message: Vec<u8>) -> [u8; 20] {
 
-    let t;
-    let padding_length = 64 - (message.len() % 64);
-    let padding: [u8; (64+5)];
+    let mut padding_length = 64 - (message.len() % 64);
+    let mut padding: [u8; (64+5)] = [0; 69];
+
     // 4. Message Padding
     if padding_length > 0 {
 
@@ -13,17 +16,14 @@ pub fn sha1(message: Vec<u8>) -> [u8; 20] {
             padding_length += 64;
         }
 
-        let padding_end: [u8; 5] = [0; 5];
-        padding_end[0] = 0x80;
+        padding[0] = 0x80;
 
         for i in 1..5 {
-            padding_end[5-i] = (message.len() >> ((i-1) * 8)) as u8;
+            padding[padding_length-i] = ((message.len()*8) >> ((i-1) * 8)) as u8;
         } // 4-word representation of l
 
-        for i in 0..5 {
-            padding[padding_length-5+i] = padding_end[i];
-        }
     }
+
 
     let k: [u32; 4] = [
         0x5A827999,
@@ -40,49 +40,46 @@ pub fn sha1(message: Vec<u8>) -> [u8; 20] {
         0xC3D2E1F0
     ];
 
-    let w: [u32; 80] = [0; 80];
-
     let mut pos = 0;
+
     while pos < (message.len() + padding_length)
     {
 
-        // reset w buffer
-        w.map(|_| 0);
+        let mut w: [u32; 80] = [0; 80];
 
-        let a = h[0];
-        let b = h[1];
-        let c = h[2];
-        let d = h[3];
-        let e = h[4];
+        let mut a = h[0];
+        let mut b = h[1];
+        let mut c = h[2];
+        let mut d = h[3];
+        let mut e = h[4];
 
-        for t in 0u32..=79u32 {
+        for t in 0..=79 {
             if t <= 15 {
-                let wcount = 24;
+                let mut wcount = 24;
                 while wcount >= 0
                 {
                     if pos < message.len() {
-                        w[t] += ((uint32_t) input[pos]) << wcount;
+                        w[t] += (message[pos] as u32) << wcount;
                     } else {
-                        w[t] += ((uint32_t) padding[pos-length]) << wcount;
+                        w[t] += (padding[pos - message.len()] as u32) << wcount;
                     }
                     pos += 1;
                     wcount -= 8;
                 }
             } else {
-                let w = w[t-3] ^ w[t-8] ^ w[t-14] ^ w[t-16];
-                let n: u32 = 1;
-
-                w[t] = ((w) << (n)) | ((w) >> (32-(n)))
+                w[t] = s(w[t-3] ^ w[t-8] ^ w[t-14] ^ w[t-16], 1);
             }
 
-            match t/20 {
-                0 => (b & c) | ((!b) & d),
+            let f = match t/20 {
+                0 => (b & c) | ((b ^ 0xFFFFFFFF) & d),
                 2 => (b & c) | (b & d) | (c & d),
                 _ => b ^ c ^ d,
             };
-
-
-            let tmp = S(a, 5) + f + e + w[t] + k[tt];
+            let ov_adding = [f, e, w[t], k[t/20]];
+            let mut tmp: u32 = s(a, 5);
+            for i in ov_adding {
+                (tmp, _) = tmp.overflowing_add(i);
+            }
             e = d;
             d = c;
             c = s(b, 30);
@@ -90,21 +87,39 @@ pub fn sha1(message: Vec<u8>) -> [u8; 20] {
             a = tmp;
         }
 
-        h[0] += a;
-        h[1] += b;
-        h[2] += c;
-        h[3] += d;
-        h[4] += e;
+        (h[0], _) = h[0].overflowing_add(a);
+        (h[1], _) = h[1].overflowing_add(b);
+        (h[2], _) = h[2].overflowing_add(c);
+        (h[3], _) = h[3].overflowing_add(d);
+        (h[4], _) = h[4].overflowing_add(e);
 
     }
 
-    let out: [u8; 20] = [0; 20];
+    let mut out: [u8; 20] = [0; 20];
 
     for i in 0u8..20u8 {
-        out[i] = (h[i>>2] >> 8) * ( 3 - ( i & 0x03 ) );
+        out[i as usize] = (h[(i>>2) as usize] >> (8 * (3-(i & 0x03 ))) as u32) as u8;
     }
 
     out
 
 }
 
+
+
+
+#[cfg(test)]
+mod tests {
+    use crate::sha1::sha1;
+
+    fn sha1_as_hex(message: Vec<u8>) -> String {
+        sha1(message).iter().map(|x| format!("{:02x}", x)).collect::<String>()
+    }
+
+    #[test]
+    fn test_sha1() {
+        let corpus1 = "The quick brown fox jumps over the lazy dog".to_string();
+        let hash = sha1_as_hex(corpus1.as_bytes().to_vec());
+        assert_eq!(hash, "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12".to_string());
+    }
+}
