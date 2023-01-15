@@ -6,6 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 
+use crate::dataframe::{DataFrame, DataFrameKind};
 use crate::base64;
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
@@ -81,13 +82,20 @@ impl WebSocketConnection {
 
             match self.state {
                 WSCState::Connected => {
-                    let on_messages = self.on_message_fkt.clone();
-                    for on_message in on_messages.iter() {
-                        let msg = Message {
-                            kind: MessageKind::String,
-                            string: std::str::from_utf8(&buf[..n]).unwrap().to_string(),
-                        };
-                        on_message(self, msg);
+                    let frame = DataFrame::from_raw(&buf[..n]);
+
+                    match frame.kind {
+                        DataFrameKind::Text => {
+                            let on_messages = self.on_message_fkt.clone();
+                            for on_message in on_messages.iter() {
+                                let msg = Message {
+                                    kind: MessageKind::String,
+                                    string: std::str::from_utf8(&buf[..n]).unwrap().to_string(),
+                                };
+                                on_message(self, msg);
+                            }
+                        }
+                        k => log::warn!("DataFrameKind ({:?}) not implemented!", k)
                     }
                 }
                 WSCState::WaitingForConnection => {

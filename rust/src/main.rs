@@ -1,4 +1,5 @@
 mod websocket;
+mod dataframe;
 mod http_parser;
 mod base64;
 mod sha1;
