@@ -1,11 +1,12 @@
-mod websocket;
+mod base64;
 mod dataframe;
 mod http_parser;
-mod base64;
 mod sha1;
+mod websocket;
+use dataframe::{Opcode, DataFrame};
 use log::info;
 // use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use websocket::{Message, MessageKind, WebSocket};
+use websocket::WebSocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,12 +20,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ws.on_connection(|wsc| {
         info!("new client connected");
 
-        wsc.on_message(|wsc, message| {
-            info!("New Message: {}", message.string.trim());
-            wsc.send_message(Message {
-                kind: MessageKind::String,
-                string: "Hallo Welt!\n".to_string(),
-            });
+        wsc.on_message(|wsc, df| {
+            info!("New Message: {}", df.as_string().unwrap().trim());
+            wsc.send_message(DataFrame::message(
+                Opcode::TextFrame,
+                "Hallo Welt\n".to_string(),
+            ));
         });
     });
 

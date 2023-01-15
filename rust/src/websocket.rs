@@ -6,22 +6,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 
-use crate::dataframe::{DataFrame, DataFrameKind};
+use crate::dataframe::{DataFrame, Opcode};
 use crate::base64;
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
 
-#[derive(Debug)]
-pub enum MessageKind {
-    String = 0,
-    // Binary,
-}
-
-#[derive(Debug)]
-pub struct Message {
-    pub kind: MessageKind,
-    pub string: String,
-}
 
 enum WSCState {
     Disconnected = 0,
@@ -34,20 +23,20 @@ enum WSCState {
 pub struct WebSocketConnection {
     socket: Arc<Mutex<TcpStream>>,
     state: WSCState,
-    pub on_message_fkt: Vec<fn(&mut Self, Message) -> ()>,
+    pub on_message_fkt: Vec<fn(&mut Self, &DataFrame) -> ()>,
 }
 
 impl WebSocketConnection {
-    pub fn on_message(&mut self, f: fn(&mut Self, Message) -> ()) {
+    pub fn on_message(&mut self, f: fn(&mut Self, &DataFrame) -> ()) {
         self.on_message_fkt.push(f);
     }
 
-    pub fn send_message(&mut self, msg: Message) {
+    pub fn send_message(&mut self, msg: DataFrame) {
         let socket = self.socket.clone();
         // FIXME: is tokio::spawn really necessary?
         tokio::spawn(async move {
             let mut socket = socket.lock().await;
-            if let Err(e) = socket.write(msg.string.as_bytes()).await {
+            if let Err(e) = socket.write(msg.as_string().unwrap().as_bytes()).await {
                 error!("failed to write to the socket: {}", e);
                 // TODO: maybe closing the socket?
             }
@@ -83,19 +72,19 @@ impl WebSocketConnection {
             match self.state {
                 WSCState::Connected => {
                     let frame = DataFrame::from_raw(&buf[..n]);
-
-                    match frame.kind {
-                        DataFrameKind::Text => {
+                    if frame.is_err() {
+                        error!("Got bad dataframe from client: {:?}", &buf[..n]);
+                        break;
+                    }
+                    let frame = frame.unwrap();
+                    match frame.opcode {
+                        Opcode::TextFrame => {
                             let on_messages = self.on_message_fkt.clone();
                             for on_message in on_messages.iter() {
-                                let msg = Message {
-                                    kind: MessageKind::String,
-                                    string: std::str::from_utf8(&buf[..n]).unwrap().to_string(),
-                                };
-                                on_message(self, msg);
+                                on_message(self, &frame);
                             }
                         }
-                        k => log::warn!("DataFrameKind ({:?}) not implemented!", k)
+                        o => log::warn!("Opcode ({:?}) not implemented!", o)
                     }
                 }
                 WSCState::WaitingForConnection => {
@@ -103,7 +92,6 @@ impl WebSocketConnection {
                     if socket.write(&http_response.as_vec()).await.is_ok()
                         && http_response.status_code == 101
                     {
-                        error!("Send Handshake");
                         self.state = WSCState::Connected;
                         continue;
                     }
@@ -134,8 +122,6 @@ impl WebSocketConnection {
 
             let response_key = sha1(request_key).to_vec();
             let response_key = base64::encode(&response_key);
-            error!("Key should be YmdBApuy8SLtn0kkJIUiOnkBGzU=");
-            error!("Key is {}", response_key);
 
             let mut response = HttpHeader::response_101();
 
