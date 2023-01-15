@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::watch::error;
 use tokio::sync::Mutex;
 
 use crate::base64;
