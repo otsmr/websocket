@@ -63,6 +63,7 @@ impl HttpHeader {
         }
 
         ret.push_str("\r\n");
+
         ret
     }
     pub fn as_vec(&self) -> Vec<u8> {

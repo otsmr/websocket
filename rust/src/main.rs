@@ -3,7 +3,7 @@ mod dataframe;
 mod http_parser;
 mod sha1;
 mod websocket;
-use dataframe::{Opcode, DataFrame};
+use dataframe::DataFrame;
 use log::info;
 // use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use websocket::WebSocket;
@@ -22,9 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         wsc.on_message(|wsc, df| {
             info!("New Message: {}", df.as_string().unwrap().trim());
-            wsc.send_message(DataFrame::message(
-                Opcode::TextFrame,
-                "Hallo Welt\n".to_string(),
+            wsc.send_message(DataFrame::text(
+                "Hello Back!\n".to_string(),
             ));
         });
     });

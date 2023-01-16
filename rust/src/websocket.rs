@@ -35,8 +35,12 @@ impl WebSocketConnection {
         let socket = self.socket.clone();
         // FIXME: is tokio::spawn really necessary?
         tokio::spawn(async move {
+            error!("SEND 1");
+            // FIXME socket.lock -> is locked until socket.read() is running
             let mut socket = socket.lock().await;
-            if let Err(e) = socket.write(msg.as_string().unwrap().as_bytes()).await {
+            error!("SEND 2");
+            info!("{:?}", msg.as_bytes());
+            if let Err(e) = socket.write(msg.as_bytes().as_slice()).await {
                 error!("failed to write to the socket: {}", e);
                 // TODO: maybe closing the socket?
             }

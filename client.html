@@ -16,8 +16,8 @@
         <option value="9090">9090</option>
     </select>
     <button onclick="connect()">Connect</button>
-    <input type="number" id="multiple" value="200" style="width: 60px;">
-    <button onclick="connectMultiple()">Connect multiple</button>
+    <!-- <input type="number" id="multiple" value="200" style="width: 60px;"> -->
+    <!-- <button onclick="connectMultiple()">Connect multiple</button> -->
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
     <button onclick="closeSocket()">Close</button><br /><br />
@@ -32,9 +32,12 @@
 
     <script>
 
+        let server_messages = document.getElementById("server_messages");
+        let state = document.getElementById("state");
+        let port = document.getElementById("port");
         let socket = null;
         var message = "";
-        
+
         function sleep(time) {
             return new Promise((re, rk) => {
                 setTimeout(() => {
@@ -57,7 +60,7 @@
                 console.log("Closing...");
                 for (const socket of sockets)
                     socket.close();
-                
+
             }, 1000*20);
 
         }
@@ -66,7 +69,7 @@
             if (socket === null)
                 return;
             state.innerText = "Disconnecting...";
-            socket.close(); 
+            socket.close();
         }
         function big () {
             message = "";
@@ -86,7 +89,7 @@
             const i = setInterval(() => {
                 socket.send("ping pöng");
             }, 1000);
-    
+
             setTimeout(() => {
                 clearInterval(i);
             }, 1000*5);
@@ -110,10 +113,10 @@
             };
             socket.onopen = _ => {
                 state.innerText = "Connected";
-            };  
+            };
 
         }
 
     </script>
 
-</body></html>  
+</body></html>
