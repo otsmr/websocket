@@ -1,4 +1,3 @@
-use log::info;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Opcode {
@@ -24,8 +23,8 @@ impl From<u8> for Opcode {
     }
 }
 
-struct DataFrameFlags {
-    fin: bool,
+pub struct DataFrameFlags {
+    pub fin: bool,
     rsv1: bool,
     rsv2: bool,
     rsv3: bool,
@@ -64,7 +63,7 @@ impl DataFrameFlags {
 
     fn from(byte1: u8, byte2: u8) -> Self {
         let mut ret = DataFrameFlags::new();
-        ret.fin = byte1 & (1 << 7) > 0;
+        ret.fin = (byte1 & (1 << 7)) > 0;
         ret.rsv1 = byte1 & (1 << 6) > 0;
         ret.rsv2 = byte1 & (1 << 5) > 0;
         ret.rsv3 = byte1 & (1 << 4) > 0;
@@ -74,9 +73,10 @@ impl DataFrameFlags {
 }
 pub struct DataFrame {
     pub opcode: Opcode,
-    flags: DataFrameFlags,
+    pub flags: DataFrameFlags,
     masking_key: [u8; 4],
     pub payload: Vec<u8>,
+    pub payload_size: u64
 }
 
 impl DataFrame {
@@ -86,6 +86,7 @@ impl DataFrame {
             flags: DataFrameFlags::new(),
             masking_key: [0; 4],
             payload: msg.as_bytes().to_vec(),
+            payload_size: 0
         }
     }
     pub fn from_raw(data: &[u8]) -> Result<Self, ()> {
@@ -159,11 +160,6 @@ impl DataFrame {
             header_len += 4;
         }
 
-        if flags.fin && (data.len() as u64) < (payload_size + header_len as u64) {
-            log::error!("data.len() < payload_size+header_len");
-            return Err(());
-        }
-
         let mut payload = Vec::new();
         payload.append(&mut data[header_len..].to_vec());
 
@@ -172,21 +168,24 @@ impl DataFrame {
                 *byte ^= masking_key[i % 4];
             }
         }
+
         Ok(DataFrame {
             opcode,
             flags,
             masking_key,
             payload,
+            payload_size
         })
     }
-    pub fn add_payload(&mut self, data: &mut [u8]) -> () {
+    pub fn add_payload(&mut self, data: &[u8]) {
         let index = self.payload.len();
         if self.flags.mask {
-            for (i, byte) in data.iter_mut().enumerate() {
-                *byte ^= self.masking_key[(i + index) % 4];
+            for (i, byte) in data.iter().enumerate() {
+                self.payload.push(*byte ^ self.masking_key[(i + index) % 4]);
             }
+        } else {
+            self.payload.append(&mut data.to_vec());
         }
-        self.payload.append(&mut data.to_vec());
     }
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut df = Vec::new();
@@ -214,5 +213,8 @@ impl DataFrame {
             return Ok(str.to_string());
         }
         Err(())
+    }
+    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, ()> {
+        frames.iter().map(|f| f.as_string()).filter(|f| f.is_ok()).collect()
     }
 }

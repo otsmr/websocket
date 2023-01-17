@@ -20,8 +20,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ws.on_connection(|wsc| {
         info!("new client connected");
 
-        wsc.on_message(|wsc, df| {
-            info!("New Message: {}", df.as_string().unwrap().trim());
+        wsc.on_message(|wsc, msg| {
+            info!("New Message: {}", msg);
             wsc.send_message(DataFrame::text(
                 "Hello Back!\n".to_string(),
             ));
