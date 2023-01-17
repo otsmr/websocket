@@ -6,11 +6,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 
-use crate::dataframe::{DataFrame, Opcode};
 use crate::base64;
+use crate::dataframe::{DataFrame, Opcode};
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
-
 
 enum WSCState {
     Disconnected = 0,
@@ -23,6 +22,7 @@ enum WSCState {
 pub struct WebSocketConnection {
     socket: Arc<Mutex<TcpStream>>,
     state: WSCState,
+    send_queue: Vec<DataFrame>,
     pub on_message_fkt: Vec<fn(&mut Self, &DataFrame) -> ()>,
 }
 
@@ -32,29 +32,7 @@ impl WebSocketConnection {
     }
 
     pub fn send_message(&mut self, msg: DataFrame) {
-        let socket = self.socket.clone();
-        // FIXME: is tokio::spawn really necessary?
-        tokio::spawn(async move {
-            error!("SEND 1");
-            // FIXME socket.lock -> is locked until socket.read() is running
-            let mut socket = socket.lock().await;
-            error!("SEND 2");
-            info!("{:?}", msg.as_bytes());
-            if let Err(e) = socket.write(msg.as_bytes().as_slice()).await {
-                error!("failed to write to the socket: {}", e);
-                // TODO: maybe closing the socket?
-            }
-            // match msg.kind {
-            //     MessageKind::String => {
-            //     }
-            //     // _ => {
-            //     //     error!(
-            //     //         "Transmitter::send MessageKind {:?} not implemented!",
-            //     //         msg.kind
-            //     //     );
-            //     // }
-            // }
-        });
+        self.send_queue.push(msg);
     }
 
     pub async fn connect(&mut self) -> io::Result<()> {
@@ -64,6 +42,15 @@ impl WebSocketConnection {
         let socket = Arc::clone(&self.socket);
         loop {
             let mut socket = socket.lock().await;
+
+            for df in self.send_queue.iter() {
+                if let Err(e) = socket.write(df.as_bytes().as_slice()).await {
+                    error!("failed to write to the socket: {}", e);
+                    // TODO: maybe closing the socket?
+                }
+            }
+            self.send_queue.clear();
+
             let n = match socket.read(&mut buf).await {
                 Ok(n) if n == 0 => break,
                 Ok(n) => n,
@@ -88,7 +75,7 @@ impl WebSocketConnection {
                                 on_message(self, &frame);
                             }
                         }
-                        o => log::warn!("Opcode ({:?}) not implemented!", o)
+                        o => log::warn!("Opcode ({:?}) not implemented!", o),
                     }
                 }
                 WSCState::WaitingForConnection => {
@@ -197,6 +184,7 @@ impl WebSocket {
                         socket,
                         state: WSCState::WaitingForConnection,
                         on_message_fkt: vec![],
+                        send_queue: vec![]
                     };
                     let on_connections = self.on_connection_fkt.clone();
                     for on_connection in on_connections.iter() {
