@@ -22,9 +22,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         wsc.on_message(|wsc, msg| {
             info!("New Message: {}", msg);
-            wsc.send_message(DataFrame::text(
-                "Hello Back!\n".to_string(),
-            ));
+            wsc.send_message(DataFrame::text("Hello Back!\n".to_string()));
+
+            if msg == &"close".to_string() {
+                wsc.close(1000);
+            }
         });
     });
 

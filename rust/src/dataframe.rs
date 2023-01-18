@@ -89,6 +89,15 @@ impl DataFrame {
             payload_size: 0
         }
     }
+    pub fn closing(statuscode: u16) -> Self {
+        DataFrame {
+            opcode: Opcode::ConectionClose,
+            flags: DataFrameFlags::new(),
+            masking_key: [0; 4],
+            payload: vec![(statuscode >> 8) as u8, statuscode as u8],
+            payload_size: 2
+        }
+    }
     pub fn from_raw(data: &[u8]) -> Result<Self, ()> {
         /*
          0               1               2               3
@@ -176,6 +185,12 @@ impl DataFrame {
             payload,
             payload_size
         })
+    }
+    pub fn get_closing_code(&self) -> u16 {
+        if self.payload.len() != 2 {
+            return 0;
+        }
+        (self.payload[0] as u16) << 8 & self.payload[1] as u16
     }
     pub fn add_payload(&mut self, data: &[u8]) {
         let index = self.payload.len();

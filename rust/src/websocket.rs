@@ -1,4 +1,5 @@
 use log::{error, info};
+use std::io::ErrorKind;
 use std::net::SocketAddr;
 use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -9,13 +10,13 @@ use crate::dataframe::{DataFrame, Opcode};
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
 
+#[derive(PartialEq, Eq)]
 enum WSCState {
     Disconnected = 0,
-    // Closing,
+    CloseFromServer,
     WaitingForConnection = 10,
-    Connected,
+    WaitingForFrames,
     InDataPayload, // with socket.write each time only 1024 bytes
-    WaitingForNextFrame,
 }
 
 pub struct WebSocketConnection {
@@ -34,6 +35,12 @@ impl WebSocketConnection {
         self.send_queue.push(msg);
     }
 
+    pub fn close(&mut self, statuscode: u16) {
+        self.state = WSCState::CloseFromServer;
+        let frame = DataFrame::closing(statuscode);
+        self.send_queue.push(frame);
+    }
+
     pub async fn connect(&mut self) -> io::Result<()> {
         info!("Trying to connect with WebSocket");
         let mut buf = [0; 1024];
@@ -41,21 +48,15 @@ impl WebSocketConnection {
 
         loop {
             for df in self.send_queue.iter() {
-                if let Err(e) = self.socket.write(df.as_bytes().as_slice()).await {
-                    error!("failed to write to the socket: {}", e);
-                    // TODO: maybe closing the socket?
-                }
+                self.socket.write_all(df.as_bytes().as_slice()).await?;
             }
+
             self.send_queue.clear();
 
-            let n = match self.socket.read(&mut buf).await {
-                Ok(n) if n == 0 => break,
-                Ok(n) => n,
-                Err(e) => {
-                    eprintln!("failed to read from socket; err = {:?}", e);
-                    break;
-                }
-            };
+            let n = self.socket.read(&mut buf).await?;
+            if n == 0 {
+                return Err(io::Error::new(ErrorKind::BrokenPipe, "Socket closed"));
+            }
 
             match self.state {
                 WSCState::InDataPayload => {
@@ -64,55 +65,82 @@ impl WebSocketConnection {
                         frame_buffer[len - 1].add_payload(&buf[..n]);
                     }
                 }
-                WSCState::Connected | WSCState::WaitingForNextFrame => {
-                    let frame = DataFrame::from_raw(&buf[..n]);
-                    if frame.is_err() {
-                        error!("Got bad dataframe from client: {:?}", &buf[..n]);
-                        break;
+                WSCState::WaitingForFrames => {
+                    if let Ok(frame) = DataFrame::from_raw(&buf[..n]) {
+                        frame_buffer.push(frame);
+                    } else {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Error parsing dataframe from client",
+                        ));
                     }
-                    frame_buffer.push(frame.unwrap());
                 }
                 WSCState::WaitingForConnection => {
                     let http_response = self.do_handshake(&buf[..n]);
-                    if self.socket.write(&http_response.as_vec()).await.is_ok()
+                    if self.socket.write_all(&http_response.as_vec()).await.is_ok()
                         && http_response.status_code == 101
                     {
-                        self.state = WSCState::Connected;
+                        self.state = WSCState::WaitingForFrames;
                         continue;
                     }
-                    self.state = WSCState::Disconnected;
-                    break;
+                    return Err(io::Error::new(
+                        ErrorKind::InvalidData,
+                        "Invalid handshake request",
+                    ));
                 }
                 _ => break,
             }
-            if !frame_buffer.is_empty() {
-                let frame = frame_buffer.last().unwrap();
-                if frame.payload.len() as u64 == frame.payload_size {
-                    match frame.opcode {
-                        Opcode::TextFrame => {
-                            let string = DataFrame::frames_as_string(&frame_buffer);
-                            if let Ok(string) = string {
-                                let on_messages = self.on_message_fkt.clone();
-                                for on_message in on_messages.iter() {
-                                    on_message(self, &string);
-                                }
-                            }
-                        }
-                        o => log::warn!("Opcode ({:?}) not implemented!", o),
-                    }
-                    if frame.flags.fin {
-                        self.state = WSCState::Connected;
-                        frame_buffer.clear();
-                    } else {
-                        self.state = WSCState::WaitingForNextFrame;
-                    }
-                } else {
-                    self.state = WSCState::InDataPayload;
-                }
+
+            if frame_buffer.is_empty() {
+                continue;
             }
+
+            let frame = frame_buffer.last().unwrap();
+
+            if frame.payload.len() as u64 != frame.payload_size {
+                self.state = WSCState::InDataPayload;
+                continue;
+            }
+
+            self.state = WSCState::WaitingForFrames;
+
+            if !frame.flags.fin {
+                continue;
+            }
+
+            match frame.opcode {
+                Opcode::TextFrame => {
+                    let string = DataFrame::frames_as_string(&frame_buffer);
+                    if let Ok(string) = string {
+                        let on_messages = self.on_message_fkt.clone();
+                        for on_message in on_messages.iter() {
+                            on_message(self, &string);
+                        }
+                    }
+                }
+                Opcode::ConectionClose => {
+                    if self.state == WSCState::CloseFromServer {
+                        self.state = WSCState::Disconnected;
+                        break;
+                    }
+
+                    // If an endpoint receives a Close frame and did not previously send a
+                    // Close frame, the endpoint MUST send a Close frame in response.  (When
+                    // sending a Close frame in response, the endpoint typically echos the
+                    // status code it received.)
+
+                    let frame = DataFrame::closing(frame.get_closing_code());
+                    self.socket.write_all(frame.as_bytes().as_slice()).await?;
+
+                    self.state = WSCState::Disconnected;
+                    break;
+                }
+                o => log::warn!("Opcode ({:?}) not implemented!", o),
+            }
+
+            frame_buffer.clear();
         }
 
-        // self.close()
         Ok(())
     }
 
@@ -181,7 +209,7 @@ impl WebSocket {
         }
 
         Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
+            ErrorKind::InvalidInput,
             "could not resolve to any address",
         ))
     }
@@ -208,7 +236,13 @@ impl WebSocket {
                     for on_connection in on_connections.iter() {
                         on_connection(&mut con);
                     }
-                    tokio::spawn(async move { con.connect().await });
+                    tokio::spawn(async move {
+                        if let Err(e) = con.connect().await {
+                            error!("Connection error: {}", e);
+                        }
+                        info!("WebSocketConnection closed");
+                        con.socket.shutdown().await
+                    });
                 }
                 Err(e) => error!("couldn't get client: {:?}", e),
             };
