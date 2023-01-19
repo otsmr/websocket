@@ -60,10 +60,3 @@ mod tests {
         }
     }
 }
-// pub fn decode(input: &Vec<u8>) -> Vec<u8> {
-
-//     let mut output: Vec<u8> = Vec::new();
-
-//     output
-
-// }

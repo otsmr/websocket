@@ -241,15 +241,14 @@ impl WebSocket {
                     for on_connection in on_connections.iter() {
                         on_connection(&mut con);
                     }
-                    let mut c = counter.lock().await;
-                    *c += 1;
-                    let counter2 = counter.clone();
+                    *counter.lock().await+=1;
+                    let counter_connection = counter.clone();
                     tokio::spawn(async move {
                         if let Err(e) = con.connect().await {
                             error!("Connection error: {}", e);
                         }
                         info!("WebSocketConnection closed");
-                        let mut c = counter2.lock().await;
+                        let mut c = counter_connection.lock().await;
                         *c -= 1;
                         info!("Current {} open connections", c);
                         con.socket.shutdown().await
