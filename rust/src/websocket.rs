@@ -1,9 +1,11 @@
 use log::{error, info};
 use std::io::ErrorKind;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::{io, vec};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
 
 use crate::base64;
 use crate::dataframe::{DataFrame, Opcode};
@@ -183,6 +185,7 @@ impl WebSocketConnection {
 
 pub struct WebSocket {
     listener: TcpListener,
+    // FIMXE: Use ToSocketAddr instead of vec
     on_connection_fkt: Vec<fn(&mut WebSocketConnection) -> ()>,
 }
 
@@ -223,7 +226,9 @@ impl WebSocket {
         if let Ok(addr) = addr {
             info!("Waiting for connections at {}!", addr);
         }
+        let counter = Arc::new(Mutex::new(0));
         loop {
+            info!("Current {} open connections", counter.lock().await);
             match self.listener.accept().await {
                 Ok((socket, _addr)) => {
                     let mut con = WebSocketConnection {
@@ -236,15 +241,26 @@ impl WebSocket {
                     for on_connection in on_connections.iter() {
                         on_connection(&mut con);
                     }
+                    let mut c = counter.lock().await;
+                    *c += 1;
+                    let counter2 = counter.clone();
                     tokio::spawn(async move {
                         if let Err(e) = con.connect().await {
                             error!("Connection error: {}", e);
                         }
                         info!("WebSocketConnection closed");
+                        let mut c = counter2.lock().await;
+                        *c -= 1;
+                        info!("Current {} open connections", c);
                         con.socket.shutdown().await
                     });
                 }
-                Err(e) => error!("couldn't get client: {:?}", e),
+                Err(e) => match e.raw_os_error() {
+                    Some(24) => {
+                        error!("No new sockets could be opened due to an OS limit. `See ulimit -n`")
+                    }
+                    _ => error!("couldn't get client: {:?}", e),
+                },
             };
         }
     }

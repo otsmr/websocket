@@ -1,12 +1,7 @@
-mod base64;
-mod dataframe;
-mod http_parser;
-mod sha1;
-mod websocket;
-use dataframe::DataFrame;
 use log::info;
-// use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use websocket::WebSocket;
+
+use websocket::websocket::WebSocket;
+use websocket::dataframe::DataFrame;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

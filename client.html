@@ -8,7 +8,10 @@
 </head>
 <body>
 
-    <p>Status: <span id="state">Disconnected</span></p>
+    <p>
+        Status: <span id="state">Disconnected</span><br />
+        Connections: <span id="connections">0</span><br />
+    </p>
     <select id="port">
         <option value="3000" selected>3000</option>
         <option value="3001">3001</option>
@@ -16,8 +19,8 @@
         <option value="9090">9090</option>
     </select>
     <button onclick="connect()">Connect</button>
-    <!-- <input type="number" id="multiple" value="200" style="width: 60px;"> -->
-    <!-- <button onclick="connectMultiple()">Connect multiple</button> -->
+    <input type="number" id="multiple" value="200" style="width: 60px;">
+    <button onclick="connectMultiple()">Connect multiple</button>
     <button onclick="ping()">Ping</button>
     <button onclick="big()">BigMessage</button>
     <button onclick="closeSocket()">Close</button><br /><br />
@@ -35,7 +38,8 @@
         let server_messages = document.getElementById("server_messages");
         let state = document.getElementById("state");
         let port = document.getElementById("port");
-        let socket = null;
+        let connections = document.getElementById("connections");
+        let sockets = [];
         var message = "";
 
         function sleep(time) {
@@ -50,26 +54,19 @@
 
             console.log("Connecting...");
 
-            let sockets = [];
             for (let i = 0; i < parseInt(multiple.value); i++) {
-                sockets.push(new WebSocket('ws://localhost:' + port.value));
-                await sleep(10);
+                connect();
+                await sleep(100);
             }
-
-            setTimeout(() => {
-                console.log("Closing...");
-                for (const socket of sockets)
-                    socket.close();
-
-            }, 1000*20);
 
         }
 
         function closeSocket() {
-            if (socket === null)
-                return;
-            state.innerText = "Disconnecting...";
-            socket.close();
+            state.innerText = "Disconnecting... ";
+            connections.innerText = sockets.length;
+            for (const socket of sockets)
+                socket.close();
+            sockets = [];
         }
         function big () {
             message = "";
@@ -80,14 +77,16 @@
                 }
                 message += String.fromCharCode((i) % 26 + 65)
             }
-            console.log("Total length of message:", message.length);
             message += "\nTotal length of message: " + message.length + "\n";
-            socket.send(message);
+            for (const socket of sockets)
+               socket.send(message);
         }
         function ping () {
-            socket.send("ping pöng");
-            const i = setInterval(() => {
+            for (const socket of sockets)
                 socket.send("ping pöng");
+            const i = setInterval(() => {
+                for (const socket of sockets)
+                    socket.send("ping pöng");
             }, 1000);
 
             setTimeout(() => {
@@ -95,11 +94,13 @@
             }, 1000*5);
         }
         function send () {
-            socket.send(document.getElementById("message").value);
+            for (const socket of sockets)
+                socket.send(document.getElementById("message").value);
         }
 
         function connect () {
-            state.innerText = "Connecting...";
+            state.innerText = "Connecting... ";
+            connections.innerText = sockets.length;
             server_messages.innerText = "";
             socket = new WebSocket('ws://localhost:' + port.value);
 
@@ -109,10 +110,12 @@
             };
             socket.onclose = e => {
                 state.innerText = "Disconnected (" + e.code + ")";
-                socket = null;
+                connections.innerText = sockets.length;
             };
             socket.onopen = _ => {
-                state.innerText = "Connected";
+                state.innerText = "Connected ";
+                sockets.push(socket);
+                connections.innerText = sockets.length;
             };
 
         }

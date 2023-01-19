@@ -1,3 +1,4 @@
+use std::io::{Error, ErrorKind};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Opcode {
@@ -98,7 +99,7 @@ impl DataFrame {
             payload_size: 2
         }
     }
-    pub fn from_raw(data: &[u8]) -> Result<Self, ()> {
+    pub fn from_raw(data: &[u8]) -> Result<Self, Error> {
         /*
          0               1               2               3
          0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
@@ -121,7 +122,7 @@ impl DataFrame {
 
         let mut header_len = 2;
         if data.len() < header_len {
-            return Err(());
+            return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
         }
 
         let opcode: Opcode = (data[0] & 0b1111).into();
@@ -134,7 +135,7 @@ impl DataFrame {
         if payload_size == 126 {
             header_len = 4;
             if data.len() < header_len {
-                return Err(());
+                return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
             }
             payload_size = (data[2] as u64) << 8;
             payload_size += data[3] as u64;
@@ -147,7 +148,7 @@ impl DataFrame {
 
             header_len = 10;
             if data.len() < header_len {
-                return Err(());
+                return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
             }
             payload_size = (data[2] as u64) << 56;
             payload_size += (data[3] as u64) << 48;
@@ -221,15 +222,15 @@ impl DataFrame {
         df.append(&mut self.payload.clone());
         df
     }
-    pub fn as_string(&self) -> Result<String, ()> {
+    pub fn as_string(&self) -> Result<String, Error> {
         let payload = self.payload.clone();
         let str = std::str::from_utf8(payload.as_slice());
         if let Ok(str) = str {
             return Ok(str.to_string());
         }
-        Err(())
+        Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"))
     }
-    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, ()> {
+    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, Error> {
         frames.iter().map(|f| f.as_string()).filter(|f| f.is_ok()).collect()
     }
 }
