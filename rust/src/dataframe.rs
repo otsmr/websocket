@@ -1,5 +1,7 @@
 use std::io::{Error, ErrorKind};
 
+use log::error;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Opcode {
     ContinuationFrame = 0x0,
@@ -90,6 +92,15 @@ impl DataFrame {
             payload_size: 0
         }
     }
+    pub fn pong() -> Self {
+        DataFrame {
+            opcode: Opcode::Pong,
+            flags: DataFrameFlags::new(),
+            masking_key: [0; 4],
+            payload: vec![],
+            payload_size: 0
+        }
+    }
     pub fn closing(statuscode: u16) -> Self {
         DataFrame {
             opcode: Opcode::ConectionClose,
@@ -133,15 +144,15 @@ impl DataFrame {
         }
         let mut payload_size = (data[1] & 0x7F) as u64;
         if payload_size == 126 {
+
             header_len = 4;
             if data.len() < header_len {
                 return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
             }
             payload_size = (data[2] as u64) << 8;
             payload_size += data[3] as u64;
-        }
 
-        if payload_size == 127 {
+        } else if payload_size == 127 {
             // if data[0] >> 7 == 1 {
             //     data[0] &= 0x7F;
             // }
@@ -172,7 +183,6 @@ impl DataFrame {
 
         let mut payload = Vec::new();
         payload.append(&mut data[header_len..].to_vec());
-
         if flags.mask {
             for (i, byte) in payload.iter_mut().enumerate() {
                 *byte ^= masking_key[i % 4];
@@ -212,7 +222,7 @@ impl DataFrame {
             for i in 0..8 {
                 df.push((self.payload.len() >> ((7 - i) * 8)) as u8);
             }
-        } else if self.payload.len() > 126 {
+        } else if self.payload.len() >= 126 {
             df[1] |= 126;
             df.push((self.payload.len() >> 8) as u8);
             df.push(self.payload.len() as u8);

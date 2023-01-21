@@ -8,3 +8,6 @@ cmake-build-debug/
 test/
 Cargo.lock
 target/
+
+rust/tests/reports/servers/*
+!rust/tests/reports/servers/index.html

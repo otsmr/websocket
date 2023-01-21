@@ -1,0 +1,13 @@
+{
+  "options": {},
+  "outdir": "./reports/servers",
+  "servers": [
+    {
+      "agent": "AVR / W5100 / Ethernet",
+      "url": "ws://192.168.178.33:9001"
+    }
+  ],
+  "cases": [ "1.1.*" ],
+  "exclude-cases": [],
+  "exclude-agent-cases": {}
+}
