@@ -1,4 +1,3 @@
-use std::io::{Error, ErrorKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Opcode {
@@ -10,16 +9,16 @@ pub enum Opcode {
     Pong = 0xA,
 }
 
-impl From<u8> for Opcode {
-    fn from(byte1: u8) -> Self {
+impl Opcode {
+    pub fn new(byte1: u8) -> Option<Opcode> {
         match byte1 {
-            0x0 => Opcode::ContinuationFrame,
-            0x1 => Opcode::TextFrame,
-            0x2 => Opcode::BinaryFrame,
-            0x8 => Opcode::ConectionClose,
-            0x9 => Opcode::Ping,
-            0xA => Opcode::Pong,
-            _ => Opcode::TextFrame,
+            0x0 => Some(Opcode::ContinuationFrame),
+            0x1 => Some(Opcode::TextFrame),
+            0x2 => Some(Opcode::BinaryFrame),
+            0x8 => Some(Opcode::ConectionClose),
+            0x9 => Some(Opcode::Ping),
+            0xA => Some(Opcode::Pong),
+            _ => None,
         }
     }
 }
@@ -150,7 +149,8 @@ impl DataFrame {
             payload_size: 0,
         }
     }
-    pub fn closing(statuscode: u16) -> Self {
+    pub fn closing(statuscode: ControlCloseCode) -> Self {
+        let statuscode = statuscode.as_u16();
         DataFrame {
             opcode: Opcode::ConectionClose,
             flags: DataFrameFlags::new(),
@@ -160,7 +160,7 @@ impl DataFrame {
             payload_size: 2,
         }
     }
-    pub fn from_raw(data: &[u8]) -> Result<Self, Error> {
+    pub fn from_raw(data: &[u8]) -> Result<Self, Option<ControlCloseCode>> {
         /*
          0               1               2               3
          0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
@@ -183,23 +183,22 @@ impl DataFrame {
 
         let mut header_size = 2;
         if data.len() < header_size {
-            return Err(Error::new(
-                ErrorKind::InvalidData,
-                "data.len() < header_size (-1)",
-            ));
+            return Err(None);
         }
 
-        let opcode: Opcode = (data[0] & 0b1111).into();
+        let opcode = Opcode::new(data[0] & 0b1111);
+        if opcode.is_none() {
+            return Err(Some(ControlCloseCode::ProtocolError));
+        }
+        let opcode = opcode.unwrap();
+
         let flags: DataFrameFlags = DataFrameFlags::from(data[0], data[1]);
 
         let mut payload_size = (data[1] & 0x7F) as u64;
         if payload_size == 126 {
             header_size = 4;
             if data.len() < header_size {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "data.len() < header_size (0)",
-                ));
+                return Err(None);
             }
             payload_size = (data[2] as u64) << 8;
             payload_size += data[3] as u64;
@@ -210,10 +209,7 @@ impl DataFrame {
 
             header_size = 10;
             if data.len() < header_size {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "data.len() < header_size (1)",
-                ));
+                return Err(None);
             }
             payload_size = (data[2] as u64) << 56;
             payload_size += (data[3] as u64) << 48;
@@ -229,10 +225,7 @@ impl DataFrame {
 
         if flags.mask {
             if data.len() < header_size + 4 {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "data.len() < header_size (2)",
-                ));
+                return Err(None);
             }
             masking_key[0] = data[header_size];
             masking_key[1] = data[header_size + 1];

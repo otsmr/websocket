@@ -65,7 +65,7 @@ impl Connection {
         self.send_queue_high_prio.push(pong);
     }
 
-    pub fn close(&mut self, statuscode: u16) {
+    pub fn close(&mut self, statuscode: ControlCloseCode) {
         self.state = ConnectionState::CloseFromServer;
         let frame = DataFrame::closing(statuscode);
         self.send_queue.push(frame);
@@ -78,13 +78,19 @@ impl Connection {
     ) -> io::Result<(bool, usize)> {
         match self.state {
             ConnectionState::WaitingForFrames => {
-                if let Ok(frame) = DataFrame::from_raw(buf) {
+                let frame = DataFrame::from_raw(buf);
+                if let Ok(frame) = frame {
                     frames.push(frame);
                     if !frames.last().unwrap().is_full() {
                         self.state = ConnectionState::InDataPayload;
                         return Ok((false, frames.last().unwrap().current_len()));
                     }
-                } else {
+                } else if let Err(close_code) = frame {
+                    if let Some(close_code) = close_code {
+                        log::error!("Close? {}", close_code.as_u16());
+                        self.close(close_code);
+                        return Ok((true, buf.len()));
+                    }
                     return Ok((false, 0));
                 }
             }
@@ -115,13 +121,13 @@ impl Connection {
 
         log::info!("Got frame with {:?}", frame.opcode);
 
-        if frame.opcode >= 0x8.into() {
+        if frame.opcode >= Opcode::new(0x8).unwrap() {
             // Control frames can be interjected in
             // the middle of a fragmented message.
             let frame = frames.pop().unwrap();
 
             if frame.payload.len() > 125 {
-                self.close(1002);
+                self.close(ControlCloseCode::ProtocolError);
                 return Ok((true, buf.len()));
             }
 
@@ -146,7 +152,8 @@ impl Connection {
                         self.state = ConnectionState::Disconnected;
                         return Ok((true, 0));
                     }
-                    let frame = DataFrame::closing(statuscode.as_u16());
+                    let frame = DataFrame::closing(statuscode);
+                    log::error!("SEND CLOSE {:?}", frame.get_closing_code());
                     self.socket.write_all(frame.as_bytes().as_slice()).await?;
 
                     self.state = ConnectionState::Disconnected;
@@ -173,7 +180,7 @@ impl Connection {
                     }
                 } else {
                     log::error!("String Error: {}", string.unwrap_err());
-                    self.close(1007);
+                    self.close(ControlCloseCode::InvalidData);
                     return Ok((true, buf.len()));
                 }
             }
@@ -201,7 +208,7 @@ impl Connection {
 
             self.send_queue_high_prio.clear();
             for df in self.send_queue.iter() {
-                debug!("Send frame {:?}", df.opcode);
+                debug!("Send frame {:?} ({:?})", df.opcode, df.get_closing_code());
                 self.socket.write_all(df.as_bytes().as_slice()).await?;
             }
 
