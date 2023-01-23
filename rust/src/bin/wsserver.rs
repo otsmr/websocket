@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
         wsc.on_close(|_, code, reason| {
-            info!("Connection closed ({}) with '{}' as reason.", code, reason);
+            info!("Connection closed ({:?}) with '{}' as reason.", code, reason);
         });
     });
 

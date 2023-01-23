@@ -23,7 +23,55 @@ impl From<u8> for Opcode {
         }
     }
 }
+#[derive(Clone, Copy, Debug)]
+#[repr(u16)]
+pub enum ControlCloseCode {
+    Normal = 1000,
+    GoingAway = 1001,
+    ProtocolError = 1002,
+    DataNotAccept = 1003,
+    InvalidData = 1007,
+    ViolatePolicy = 1008,
+    MessageToBig = 1009,
+    ExtensionError = 1010,
+    UnexpectedCondition = 1011,
+    ApplicationUse(u16),
+    PrivateUse(u16),
+}
 
+impl ControlCloseCode {
+    fn from(raw: u16) -> Self {
+        match raw {
+            1000 => Self::Normal,
+            1001 => Self::GoingAway,
+            1003 => Self::DataNotAccept,
+            1007 => Self::InvalidData,
+            1008 => Self::ViolatePolicy,
+            1009 => Self::MessageToBig,
+            1010 => Self::ExtensionError,
+            1011 => Self::UnexpectedCondition,
+            n @ 3000..=3999 => Self::ApplicationUse(n),
+            n @ 4000..=4999 => Self::PrivateUse(n),
+            _ => Self::ProtocolError,
+        }
+    }
+
+    pub fn as_u16(self) -> u16 {
+        match self {
+            ControlCloseCode::Normal => 1000,
+            ControlCloseCode::GoingAway => 1001,
+            ControlCloseCode::ProtocolError => 1002,
+            ControlCloseCode::DataNotAccept => 1003,
+            ControlCloseCode::InvalidData => 1007,
+            ControlCloseCode::ViolatePolicy => 1008,
+            ControlCloseCode::MessageToBig => 1009,
+            ControlCloseCode::ExtensionError => 1010,
+            ControlCloseCode::UnexpectedCondition => 1011,
+            ControlCloseCode::ApplicationUse(n) => n,
+            ControlCloseCode::PrivateUse(n) => n,
+        }
+    }
+}
 pub struct DataFrameFlags {
     pub fin: bool,
     rsv1: bool,
@@ -225,28 +273,25 @@ impl DataFrame {
     pub fn is_full(&self) -> bool {
         self.payload.len() as u64 == self.payload_size
     }
-    pub fn get_closing_reason(&self) -> Result<String, u16> {
+    pub fn get_closing_reason(&self) -> Result<String, ControlCloseCode> {
         if self.payload.len() < 2 {
             return Ok("".to_string());
         }
         let reason = self.as_string_with_offset(2);
         if reason.is_err() {
-            return Err(1007);
+            return Err(ControlCloseCode::InvalidData);
         }
         Ok(reason.unwrap())
     }
-    pub fn get_closing_code(&self) -> u16 {
+    pub fn get_closing_code(&self) -> ControlCloseCode {
         if self.payload.is_empty() {
-            return 1000;
+            return ControlCloseCode::Normal;
         }
         if self.payload.len() < 2 {
-            return 1002;
+            return ControlCloseCode::ProtocolError;
         }
         let statuscode = (self.payload[0] as u16) << 8 | self.payload[1] as u16;
-        if statuscode < 1000 {
-            return 1002;
-        }
-        statuscode
+        ControlCloseCode::from(statuscode)
     }
     pub fn add_payload(&mut self, data: &[u8]) -> usize {
         let index = self.payload.len();

@@ -1,5 +1,5 @@
 use crate::base64;
-use crate::dataframe::{DataFrame, Opcode};
+use crate::dataframe::{DataFrame, Opcode, ControlCloseCode};
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
 use log::debug;
@@ -17,13 +17,21 @@ enum ConnectionState {
     InDataPayload, // with socket.write each time only 1024 bytes
 }
 
+// enum _CloseCode {
+//     Reserved1 = 1004,
+//     Reserved2 = 1005,
+//     Reserved3 = 1006,
+//     TLSError = 1015
+// }
+// type close_fkt
 pub struct Connection {
     socket: TcpStream,
     state: ConnectionState,
     send_queue: Vec<DataFrame>,
+    send_queue_high_prio: Vec<DataFrame>,
     request_header: Option<HttpHeader>,
     on_message_fkt: Vec<fn(&mut Self, &String) -> ()>,
-    on_close_fkt: Vec<fn(&mut Self, u16, &String) -> ()>,
+    on_close_fkt: Vec<fn(&mut Self, ControlCloseCode, &String) -> ()>,
 }
 
 impl Connection {
@@ -35,12 +43,13 @@ impl Connection {
             on_message_fkt: vec![],
             on_close_fkt: vec![],
             send_queue: vec![],
+            send_queue_high_prio: vec![],
         }
     }
     pub fn on_message(&mut self, f: fn(&mut Self, &String) -> ()) {
         self.on_message_fkt.push(f);
     }
-    pub fn on_close(&mut self, f: fn(&mut Self, u16, &String) -> ()) {
+    pub fn on_close(&mut self, f: fn(&mut Self, ControlCloseCode, &String) -> ()) {
         self.on_close_fkt.push(f);
     }
 
@@ -53,7 +62,7 @@ impl Connection {
         if !frame.payload.is_empty() {
             pong.payload = frame.payload.clone();
         }
-        self.send_queue.push(pong);
+        self.send_queue_high_prio.push(pong);
     }
 
     pub fn close(&mut self, statuscode: u16) {
@@ -125,7 +134,7 @@ impl Connection {
                         statuscode = error_statuscode;
                         close_reason = "".to_string();
                     } else {
-                        close_reason = parse_reason.unwrap();
+                        close_reason = parse_reason.ok().unwrap();
                     }
                     if !self.on_close_fkt.is_empty() {
                         let on_closes = self.on_close_fkt.clone();
@@ -137,7 +146,7 @@ impl Connection {
                         self.state = ConnectionState::Disconnected;
                         return Ok((true, 0));
                     }
-                    let frame = DataFrame::closing(statuscode);
+                    let frame = DataFrame::closing(statuscode.as_u16());
                     self.socket.write_all(frame.as_bytes().as_slice()).await?;
 
                     self.state = ConnectionState::Disconnected;
@@ -185,6 +194,12 @@ impl Connection {
         let mut close_connection = false;
 
         loop {
+            for df in self.send_queue_high_prio.iter() {
+                debug!("Send frame {:?}", df.opcode);
+                self.socket.write_all(df.as_bytes().as_slice()).await?;
+            }
+
+            self.send_queue_high_prio.clear();
             for df in self.send_queue.iter() {
                 debug!("Send frame {:?}", df.opcode);
                 self.socket.write_all(df.as_bytes().as_slice()).await?;
