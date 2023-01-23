@@ -1,8 +1,6 @@
 use std::io::{Error, ErrorKind};
 
-use log::error;
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Opcode {
     ContinuationFrame = 0x0,
     TextFrame = 0x1,
@@ -79,7 +77,8 @@ pub struct DataFrame {
     pub flags: DataFrameFlags,
     masking_key: [u8; 4],
     pub payload: Vec<u8>,
-    pub payload_size: u64
+    payload_size: u64,
+    header_size: u64,
 }
 
 impl DataFrame {
@@ -89,7 +88,8 @@ impl DataFrame {
             flags: DataFrameFlags::new(),
             masking_key: [0; 4],
             payload: msg.as_bytes().to_vec(),
-            payload_size: 0
+            payload_size: 0,
+            header_size: 0,
         }
     }
     pub fn pong() -> Self {
@@ -98,7 +98,8 @@ impl DataFrame {
             flags: DataFrameFlags::new(),
             masking_key: [0; 4],
             payload: vec![],
-            payload_size: 0
+            header_size: 0,
+            payload_size: 0,
         }
     }
     pub fn closing(statuscode: u16) -> Self {
@@ -107,7 +108,8 @@ impl DataFrame {
             flags: DataFrameFlags::new(),
             masking_key: [0; 4],
             payload: vec![(statuscode >> 8) as u8, statuscode as u8],
-            payload_size: 2
+            header_size: 0,
+            payload_size: 2,
         }
     }
     pub fn from_raw(data: &[u8]) -> Result<Self, Error> {
@@ -131,35 +133,39 @@ impl DataFrame {
         |                     Payload Data continued ...                |
         +---------------------------------------------------------------+ */
 
-        let mut header_len = 2;
-        if data.len() < header_len {
-            return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
+        let mut header_size = 2;
+        if data.len() < header_size {
+            return Err(Error::new(
+                ErrorKind::InvalidData,
+                "data.len() < header_size (-1)",
+            ));
         }
 
         let opcode: Opcode = (data[0] & 0b1111).into();
-        let mut flags: DataFrameFlags = DataFrameFlags::from(data[0], data[1]);
+        let flags: DataFrameFlags = DataFrameFlags::from(data[0], data[1]);
 
-        if (data[1] >> 7) == 1 {
-            flags.mask = true;
-        }
         let mut payload_size = (data[1] & 0x7F) as u64;
         if payload_size == 126 {
-
-            header_len = 4;
-            if data.len() < header_len {
-                return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
+            header_size = 4;
+            if data.len() < header_size {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    "data.len() < header_size (0)",
+                ));
             }
             payload_size = (data[2] as u64) << 8;
             payload_size += data[3] as u64;
-
         } else if payload_size == 127 {
             // if data[0] >> 7 == 1 {
             //     data[0] &= 0x7F;
             // }
 
-            header_len = 10;
-            if data.len() < header_len {
-                return Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"));
+            header_size = 10;
+            if data.len() < header_size {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    "data.len() < header_size (1)",
+                ));
             }
             payload_size = (data[2] as u64) << 56;
             payload_size += (data[3] as u64) << 48;
@@ -174,18 +180,30 @@ impl DataFrame {
         let mut masking_key = [0; 4];
 
         if flags.mask {
-            masking_key[0] = data[header_len];
-            masking_key[1] = data[header_len + 1];
-            masking_key[2] = data[header_len + 2];
-            masking_key[3] = data[header_len + 3];
-            header_len += 4;
+            if data.len() < header_size + 4 {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    "data.len() < header_size (2)",
+                ));
+            }
+            masking_key[0] = data[header_size];
+            masking_key[1] = data[header_size + 1];
+            masking_key[2] = data[header_size + 2];
+            masking_key[3] = data[header_size + 3];
+            header_size += 4;
         }
 
         let mut payload = Vec::new();
-        payload.append(&mut data[header_len..].to_vec());
-        if flags.mask {
-            for (i, byte) in payload.iter_mut().enumerate() {
-                *byte ^= masking_key[i % 4];
+        if payload_size > 0 {
+            let mut remaining = payload_size as usize + header_size;
+            if remaining > data.len() {
+                remaining = data.len();
+            }
+            payload.append(&mut data[header_size..remaining].to_vec());
+            if flags.mask {
+                for (i, byte) in payload.iter_mut().enumerate() {
+                    *byte ^= masking_key[i % 4];
+                }
             }
         }
 
@@ -194,24 +212,56 @@ impl DataFrame {
             flags,
             masking_key,
             payload,
-            payload_size
+            payload_size,
+            header_size: header_size as u64,
         })
     }
-    pub fn get_closing_code(&self) -> u16 {
-        if self.payload.len() != 2 {
-            return 0;
-        }
-        (self.payload[0] as u16) << 8 & self.payload[1] as u16
+    pub fn current_len(&self) -> usize {
+        self.payload.len() + self.header_size as usize
     }
-    pub fn add_payload(&mut self, data: &[u8]) {
+    // pub fn target_len(&self) -> usize {
+    //     (self.payload_size + self.header_size) as usize
+    // }
+    pub fn is_full(&self) -> bool {
+        self.payload.len() as u64 == self.payload_size
+    }
+    pub fn get_closing_reason(&self) -> Result<String, u16> {
+        if self.payload.len() < 2 {
+            return Ok("".to_string());
+        }
+        let reason = self.as_string_with_offset(2);
+        if reason.is_err() {
+            return Err(1007);
+        }
+        Ok(reason.unwrap())
+    }
+    pub fn get_closing_code(&self) -> u16 {
+        if self.payload.is_empty() {
+            return 1000;
+        }
+        if self.payload.len() < 2 {
+            return 1002;
+        }
+        let statuscode = (self.payload[0] as u16) << 8 | self.payload[1] as u16;
+        if statuscode < 1000 {
+            return 1002;
+        }
+        statuscode
+    }
+    pub fn add_payload(&mut self, data: &[u8]) -> usize {
         let index = self.payload.len();
+        let mut remaining = self.payload_size as usize - index;
+        if remaining > data.len() {
+            remaining = data.len();
+        }
         if self.flags.mask {
-            for (i, byte) in data.iter().enumerate() {
+            for (i, byte) in data[0..remaining].iter().enumerate() {
                 self.payload.push(*byte ^ self.masking_key[(i + index) % 4]);
             }
         } else {
-            self.payload.append(&mut data.to_vec());
+            self.payload.append(&mut data[0..remaining].to_vec());
         }
+        remaining
     }
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut df = Vec::new();
@@ -232,15 +282,22 @@ impl DataFrame {
         df.append(&mut self.payload.clone());
         df
     }
-    pub fn as_string(&self) -> Result<String, Error> {
-        let payload = self.payload.clone();
-        let str = std::str::from_utf8(payload.as_slice());
+    pub fn as_string(&self) -> Result<String, std::str::Utf8Error> {
+        self.as_string_with_offset(0)
+    }
+    pub fn as_string_with_offset(&self, offset: usize) -> Result<String, std::str::Utf8Error> {
+        let payload = &self.payload[offset..];
+        let str = std::str::from_utf8(payload);
         if let Ok(str) = str {
             return Ok(str.to_string());
         }
-        Err(Error::new(ErrorKind::InvalidData, "data.len() < header_len"))
+        Err(str.unwrap_err())
     }
-    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, Error> {
-        frames.iter().map(|f| f.as_string()).filter(|f| f.is_ok()).collect()
+    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, std::str::Utf8Error> {
+        let mut str = "".to_string();
+        for frame in frames {
+            str += &frame.as_string()?;
+        }
+        Ok(str)
     }
 }

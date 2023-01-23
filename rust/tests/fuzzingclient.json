@@ -4,10 +4,14 @@
   "servers": [
     {
       "agent": "AVR / W5100 / Ethernet",
-      "url": "ws://192.168.178.33:9001"
+      "url": "ws://host.docker.internal:9001"
     }
   ],
-  "cases": [ "1.1.*" ],
+  "cases": [
+   "1.1.*",
+   "2.*",
+   "7.*"
+  ],
   "exclude-cases": [],
   "exclude-agent-cases": {}
 }

@@ -51,12 +51,11 @@ impl WebSocket {
             );
             match self.listener.accept().await {
                 Ok((socket, _addr)) => {
-
                     let counter_connection = self.open_connection_counter.clone();
                     let on_connections = self.on_connection_fkt.clone();
 
-                    *counter_connection.lock().await += 1;
                     tokio::spawn(async move {
+                        *counter_connection.lock().await += 1;
                         let mut con = Connection::new(socket);
 
                         for on_connection in on_connections.iter() {
@@ -70,7 +69,6 @@ impl WebSocket {
                         *c -= 1;
                         debug!("Current {} open connections", c);
                     });
-
                 }
                 Err(e) => match e.raw_os_error() {
                     Some(24) => {

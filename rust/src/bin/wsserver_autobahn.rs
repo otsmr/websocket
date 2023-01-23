@@ -5,8 +5,9 @@ use websocket::websocket::WebSocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
-
+    env_logger::builder()
+        .format_timestamp(None)
+        .init();
     info!("Starting WebSocket for Autobahn|Testsuite!");
 
     let mut ws = WebSocket::bind("0.0.0.0:9001").await?;
