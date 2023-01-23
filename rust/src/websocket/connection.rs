@@ -87,7 +87,6 @@ impl Connection {
                     }
                 } else if let Err(close_code) = frame {
                     if let Some(close_code) = close_code {
-                        log::error!("Close? {}", close_code.as_u16());
                         self.close(close_code);
                         return Ok((true, buf.len()));
                     }
@@ -153,7 +152,6 @@ impl Connection {
                         return Ok((true, 0));
                     }
                     let frame = DataFrame::closing(statuscode);
-                    log::error!("SEND CLOSE {:?}", frame.get_closing_code());
                     self.socket.write_all(frame.as_bytes().as_slice()).await?;
 
                     self.state = ConnectionState::Disconnected;
@@ -187,9 +185,10 @@ impl Connection {
             o => log::warn!("Opcode ({:?}) not implemented!", o),
         }
 
-        frames.clear();
+        let used_len = frame.current_len();
 
-        Ok((false, buf.len()))
+        frames.clear();
+        Ok((false, used_len))
     }
 
     pub async fn connect(&mut self) -> io::Result<()> {
@@ -208,7 +207,7 @@ impl Connection {
 
             self.send_queue_high_prio.clear();
             for df in self.send_queue.iter() {
-                debug!("Send frame {:?} ({:?})", df.opcode, df.get_closing_code());
+                debug!("Send frame {:?}", df.opcode);
                 self.socket.write_all(df.as_bytes().as_slice()).await?;
             }
 

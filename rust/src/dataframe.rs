@@ -136,7 +136,7 @@ impl DataFrame {
             masking_key: [0; 4],
             payload: msg.as_bytes().to_vec(),
             payload_size: 0,
-            header_size: 0,
+            header_size: 0
         }
     }
     pub fn pong() -> Self {
@@ -284,6 +284,7 @@ impl DataFrame {
             return ControlCloseCode::ProtocolError;
         }
         let statuscode = (self.payload[0] as u16) << 8 | self.payload[1] as u16;
+
         ControlCloseCode::from(statuscode)
     }
     pub fn add_payload(&mut self, data: &[u8]) -> usize {
