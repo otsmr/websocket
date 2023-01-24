@@ -149,6 +149,11 @@ impl DataFrame {
             payload_size: 0,
         }
     }
+    pub fn ping () -> Self {
+        let mut df = Self::pong();
+        df.opcode = Opcode::Ping;
+        df
+    }
     pub fn closing(statuscode: ControlCloseCode) -> Self {
         let statuscode = statuscode.as_u16();
         DataFrame {

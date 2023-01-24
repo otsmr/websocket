@@ -5,6 +5,7 @@ use crate::sha1::sha1;
 use log::debug;
 use std::io;
 use std::io::ErrorKind;
+use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -27,6 +28,7 @@ enum ConnectionState {
 pub struct Connection {
     socket: TcpStream,
     state: ConnectionState,
+    waiting_for_pong: bool,
     send_queue: Vec<DataFrame>,
     send_queue_high_prio: Vec<DataFrame>,
     request_header: Option<HttpHeader>,
@@ -39,6 +41,7 @@ impl Connection {
         Connection {
             socket,
             state: ConnectionState::WaitingForConnection,
+            waiting_for_pong: false,
             request_header: None,
             on_message_fkt: vec![],
             on_close_fkt: vec![],
@@ -57,6 +60,11 @@ impl Connection {
         self.send_queue.push(msg);
     }
 
+    fn send_ping(&mut self) {
+        let pong = DataFrame::ping();
+        self.waiting_for_pong = true;
+        self.send_queue_high_prio.push(pong);
+    }
     fn send_pong(&mut self, frame: &DataFrame) {
         let mut pong = DataFrame::pong();
         if !frame.payload.is_empty() {
@@ -158,7 +166,7 @@ impl Connection {
                     return Ok((true, 0));
                 }
                 Opcode::Ping => self.send_pong(&frame),
-                Opcode::Pong => (),
+                Opcode::Pong => self.waiting_for_pong = false,
                 _ => (),
             }
             return Ok((false, frame.current_len()));
@@ -199,6 +207,7 @@ impl Connection {
         let mut frames = Vec::<DataFrame>::new();
         let mut close_connection = false;
 
+
         loop {
             for df in self.send_queue_high_prio.iter() {
                 debug!("Send frame {:?}", df.opcode);
@@ -220,9 +229,18 @@ impl Connection {
             let rx = self.socket.read(&mut read_buffer);
 
             let read_buffer_len: usize = if self.state == ConnectionState::CloseFromServer {
-                tokio::time::timeout(std::time::Duration::from_secs(2), rx).await??
+                tokio::time::timeout(Duration::from_secs(2), rx).await??
             } else {
-                rx.await?
+                match tokio::time::timeout(Duration::from_secs(60), rx).await {
+                    Ok(n) => n?,
+                    Err(_) => {
+                        if self.waiting_for_pong {
+                            break; // close tcp socket because of timeout
+                        }
+                        self.send_ping();
+                        continue;
+                    }
+                }
             };
 
             if read_buffer_len == 0 {
