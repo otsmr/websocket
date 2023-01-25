@@ -1,7 +1,8 @@
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Opcode {
     ContinuationFrame = 0x0,
+    #[default]
     TextFrame = 0x1,
     BinaryFrame = 0x2,
     ConectionClose = 0x8,
@@ -22,9 +23,10 @@ impl Opcode {
         }
     }
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 #[repr(u16)]
 pub enum ControlCloseCode {
+    #[default]
     Normal = 1000,
     GoingAway = 1001,
     ProtocolError = 1002,
@@ -71,6 +73,7 @@ impl ControlCloseCode {
         }
     }
 }
+#[derive(Debug)]
 pub struct DataFrameFlags {
     pub fin: bool,
     rsv1: bool,
@@ -78,8 +81,8 @@ pub struct DataFrameFlags {
     rsv3: bool,
     mask: bool,
 }
-impl DataFrameFlags {
-    fn new() -> Self {
+impl Default for DataFrameFlags {
+    fn default() -> DataFrameFlags {
         DataFrameFlags {
             fin: true,
             rsv1: false,
@@ -88,7 +91,8 @@ impl DataFrameFlags {
             mask: false,
         }
     }
-
+}
+impl DataFrameFlags {
     fn as_bytes(&self) -> [u8; 2] {
         let mut ret = [0; 2];
         if self.mask {
@@ -110,15 +114,16 @@ impl DataFrameFlags {
     }
 
     fn from(byte1: u8, byte2: u8) -> Self {
-        let mut ret = DataFrameFlags::new();
-        ret.fin = (byte1 & (1 << 7)) > 0;
-        ret.rsv1 = byte1 & (1 << 6) > 0;
-        ret.rsv2 = byte1 & (1 << 5) > 0;
-        ret.rsv3 = byte1 & (1 << 4) > 0;
-        ret.mask = byte2 & 0x80 > 0;
-        ret
+        Self {
+            fin : (byte1 & (1 << 7)) > 0,
+            rsv1: byte1 & (1 << 6) > 0,
+            rsv2: byte1 & (1 << 5) > 0,
+            rsv3: byte1 & (1 << 4) > 0,
+            mask: byte2 & 0x80 > 0,
+        }
     }
 }
+#[derive(Default)]
 pub struct DataFrame {
     pub opcode: Opcode,
     pub flags: DataFrameFlags,
@@ -129,40 +134,38 @@ pub struct DataFrame {
 }
 
 impl DataFrame {
+    pub fn bytes(bytes: Vec<u8>) -> Self {
+        DataFrame {
+            opcode: Opcode::BinaryFrame,
+            payload: bytes,
+            ..DataFrame::default()
+        }
+    }
     pub fn text(msg: String) -> Self {
         DataFrame {
             opcode: Opcode::TextFrame,
-            flags: DataFrameFlags::new(),
-            masking_key: [0; 4],
             payload: msg.as_bytes().to_vec(),
-            payload_size: 0,
-            header_size: 0
+            ..DataFrame::default()
         }
     }
     pub fn pong() -> Self {
         DataFrame {
             opcode: Opcode::Pong,
-            flags: DataFrameFlags::new(),
-            masking_key: [0; 4],
-            payload: vec![],
-            header_size: 0,
-            payload_size: 0,
+            ..DataFrame::default()
         }
     }
     pub fn ping () -> Self {
-        let mut df = Self::pong();
-        df.opcode = Opcode::Ping;
-        df
+        DataFrame {
+            opcode: Opcode::Ping,
+            ..DataFrame::default()
+        }
     }
     pub fn closing(statuscode: ControlCloseCode) -> Self {
         let statuscode = statuscode.as_u16();
         DataFrame {
             opcode: Opcode::ConectionClose,
-            flags: DataFrameFlags::new(),
-            masking_key: [0; 4],
             payload: vec![(statuscode >> 8) as u8, statuscode as u8],
-            header_size: 0,
-            payload_size: 2,
+            ..DataFrame::default()
         }
     }
     pub fn from_raw(data: &[u8]) -> Result<Self, Option<ControlCloseCode>> {
@@ -198,6 +201,10 @@ impl DataFrame {
         let opcode = opcode.unwrap();
 
         let flags: DataFrameFlags = DataFrameFlags::from(data[0], data[1]);
+
+        if flags.rsv1 | flags.rsv2 | flags.rsv3 {
+            return Err(Some(ControlCloseCode::ProtocolError));
+        }
 
         let mut payload_size = (data[1] & 0x7F) as u64;
         if payload_size == 126 {
@@ -336,6 +343,9 @@ impl DataFrame {
             return Ok(str.to_string());
         }
         Err(str.unwrap_err())
+    }
+    pub fn frames_as_bytes(frames: &[DataFrame]) -> Vec<u8> {
+        frames.iter().flat_map(|frame| &frame.payload[..]).cloned().collect()
     }
     pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, std::str::Utf8Error> {
         let mut str = "".to_string();

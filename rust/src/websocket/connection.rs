@@ -1,5 +1,5 @@
 use crate::base64;
-use crate::dataframe::{DataFrame, Opcode, ControlCloseCode};
+use crate::dataframe::{ControlCloseCode, DataFrame, Opcode};
 use crate::http_parser::{parse_http_header, HttpHeader};
 use crate::sha1::sha1;
 use log::debug;
@@ -33,6 +33,7 @@ pub struct Connection {
     send_queue_high_prio: Vec<DataFrame>,
     request_header: Option<HttpHeader>,
     on_message_fkt: Vec<fn(&mut Self, &String) -> ()>,
+    on_bytes_fkt: Vec<fn(&mut Self, &Vec<u8>) -> ()>,
     on_close_fkt: Vec<fn(&mut Self, ControlCloseCode, &String) -> ()>,
 }
 
@@ -45,9 +46,13 @@ impl Connection {
             request_header: None,
             on_message_fkt: vec![],
             on_close_fkt: vec![],
+            on_bytes_fkt: vec![],
             send_queue: vec![],
             send_queue_high_prio: vec![],
         }
+    }
+    pub fn on_bytes(&mut self, f: fn(&mut Self, &Vec<u8>) -> ()) {
+        self.on_bytes_fkt.push(f);
     }
     pub fn on_message(&mut self, f: fn(&mut Self, &String) -> ()) {
         self.on_message_fkt.push(f);
@@ -55,9 +60,16 @@ impl Connection {
     pub fn on_close(&mut self, f: fn(&mut Self, ControlCloseCode, &String) -> ()) {
         self.on_close_fkt.push(f);
     }
-
-    pub fn send_message(&mut self, msg: DataFrame) {
-        self.send_queue.push(msg);
+    pub fn send_bytes(&mut self, bytes: &Vec<u8>) {
+        let frame = DataFrame::bytes(bytes.to_owned());
+        self.send_frame(frame);
+    }
+    pub fn send_message(&mut self, msg: &String) {
+        let frame = DataFrame::text(msg.to_owned());
+        self.send_frame(frame);
+    }
+    pub fn send_frame(&mut self, frame: DataFrame) {
+        self.send_queue.push(frame);
     }
 
     fn send_ping(&mut self) {
@@ -133,7 +145,7 @@ impl Connection {
             // the middle of a fragmented message.
             let frame = frames.pop().unwrap();
 
-            if frame.payload.len() > 125 {
+            if frame.payload.len() > 125 || !frame.flags.fin {
                 self.close(ControlCloseCode::ProtocolError);
                 return Ok((true, buf.len()));
             }
@@ -172,11 +184,27 @@ impl Connection {
             return Ok((false, frame.current_len()));
         }
 
+        if frames.len() > 1 && frame.opcode != Opcode::ContinuationFrame {
+            self.close(ControlCloseCode::ProtocolError);
+            return Ok((true, buf.len()));
+        }
+
+        let frame_type = if frame.opcode == Opcode::ContinuationFrame {
+            if frames.len() == 1 {
+                // The connection is failed immediately, since there is no message to continue.
+                self.close(ControlCloseCode::ProtocolError);
+                return Ok((true, buf.len()));
+            }
+            frames[0].opcode
+        } else {
+            frame.opcode
+        };
+
         if !frame.flags.fin {
             return Ok((false, frame.current_len()));
         }
 
-        match frame.opcode {
+        match frame_type {
             Opcode::TextFrame => {
                 let string = DataFrame::frames_as_string(frames);
                 if let Ok(string) = string {
@@ -185,11 +213,29 @@ impl Connection {
                         on_message(self, &string);
                     }
                 } else {
-                    log::error!("String Error: {}", string.unwrap_err());
                     self.close(ControlCloseCode::InvalidData);
                     return Ok((true, buf.len()));
                 }
             }
+            Opcode::BinaryFrame => {
+                let bytes = DataFrame::frames_as_bytes(frames);
+                let on_bytes = self.on_bytes_fkt.clone();
+                for on_byte in on_bytes.iter() {
+                    on_byte(self, &bytes);
+                }
+            }
+            // Opcode::BinaryFrame => match DataFrame::frames_as_bytes(frames) {
+            //     Ok(bytes) => {
+            //         let on_bytes = self.on_bytes_fkt.clone();
+            //         for on_byte in on_bytes.iter() {
+            //             on_byte(self, &bytes);
+            //         }
+            //     }
+            //     Err(e) => {
+            //         self.close(ControlCloseCode::InvalidData);
+            //         return Ok((true, buf.len()));
+            //     }
+            // }
             o => log::warn!("Opcode ({:?}) not implemented!", o),
         }
 
@@ -206,7 +252,6 @@ impl Connection {
         let mut read_buffer = [0; 1024];
         let mut frames = Vec::<DataFrame>::new();
         let mut close_connection = false;
-
 
         loop {
             for df in self.send_queue_high_prio.iter() {

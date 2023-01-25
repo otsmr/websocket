@@ -1,6 +1,6 @@
 use log::info;
 
-use websocket::dataframe::{DataFrame, ControlCloseCode};
+use websocket::dataframe::ControlCloseCode;
 use websocket::websocket::WebSocket;
 
 #[tokio::main]
@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         wsc.on_message(|wsc, msg| {
             info!("New message: {}", msg);
-            wsc.send_message(DataFrame::text("Hello Back!\n".to_string()));
+            wsc.send_message(msg);
             if msg == &"close".to_string() {
                 wsc.close(ControlCloseCode::Normal);
             }
