@@ -96,6 +96,7 @@ impl Connection {
         buf: &[u8],
         frames: &mut Vec<DataFrame>,
     ) -> io::Result<(bool, usize)> {
+        let mut offset: Option<usize> = None;
         match self.state {
             ConnectionState::WaitingForFrames => {
                 let frame = DataFrame::from_raw(buf);
@@ -114,10 +115,11 @@ impl Connection {
                 }
             }
             ConnectionState::InDataPayload => {
-                let offset = frames.last_mut().unwrap().add_payload(buf);
+                let used_bytes = frames.last_mut().unwrap().add_payload(buf);
                 if !frames.last().unwrap().is_full() {
-                    return Ok((false, offset));
+                    return Ok((false, used_bytes));
                 }
+                offset = Some(used_bytes);
                 self.state = ConnectionState::WaitingForFrames;
             }
             ConnectionState::WaitingForConnection => {
@@ -138,7 +140,7 @@ impl Connection {
 
         let frame = frames.last().unwrap();
 
-        log::info!("Got frame with {:?}", frame.opcode);
+        log::debug!("Got frame with opcode: {:?}", frame.opcode);
 
         if frame.opcode >= Opcode::new(0x8).unwrap() {
             // Control frames can be interjected in
@@ -200,17 +202,22 @@ impl Connection {
             frame.opcode
         };
 
+        let offset = match offset {
+            Some(o) => o,
+            None => frame.current_len()
+        };
+
         if !frame.flags.fin {
-            return Ok((false, frame.current_len()));
+            return Ok((false, offset));
         }
 
         match frame_type {
             Opcode::TextFrame => {
-                let string = DataFrame::frames_as_string(frames);
+                let string = DataFrame::payload_as_string(frames);
                 if let Ok(string) = string {
                     let on_messages = self.on_message_fkt.clone();
                     for on_message in on_messages.iter() {
-                        on_message(self, &string);
+                        on_message(self, &string.to_owned());
                     }
                 } else {
                     self.close(ControlCloseCode::InvalidData);
@@ -218,7 +225,7 @@ impl Connection {
                 }
             }
             Opcode::BinaryFrame => {
-                let bytes = DataFrame::frames_as_bytes(frames);
+                let bytes = DataFrame::payload_as_bytes(frames);
                 let on_bytes = self.on_bytes_fkt.clone();
                 for on_byte in on_bytes.iter() {
                     on_byte(self, &bytes);
@@ -239,10 +246,8 @@ impl Connection {
             o => log::warn!("Opcode ({:?}) not implemented!", o),
         }
 
-        let used_len = frame.current_len();
-
         frames.clear();
-        Ok((false, used_len))
+        Ok((false, offset))
     }
 
     pub async fn connect(&mut self) -> io::Result<()> {

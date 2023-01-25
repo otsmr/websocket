@@ -1,4 +1,3 @@
-
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Opcode {
     ContinuationFrame = 0x0,
@@ -115,7 +114,7 @@ impl DataFrameFlags {
 
     fn from(byte1: u8, byte2: u8) -> Self {
         Self {
-            fin : (byte1 & (1 << 7)) > 0,
+            fin: (byte1 & (1 << 7)) > 0,
             rsv1: byte1 & (1 << 6) > 0,
             rsv2: byte1 & (1 << 5) > 0,
             rsv3: byte1 & (1 << 4) > 0,
@@ -154,7 +153,7 @@ impl DataFrame {
             ..DataFrame::default()
         }
     }
-    pub fn ping () -> Self {
+    pub fn ping() -> Self {
         DataFrame {
             opcode: Opcode::Ping,
             ..DataFrame::default()
@@ -344,14 +343,19 @@ impl DataFrame {
         }
         Err(str.unwrap_err())
     }
-    pub fn frames_as_bytes(frames: &[DataFrame]) -> Vec<u8> {
-        frames.iter().flat_map(|frame| &frame.payload[..]).cloned().collect()
+    pub fn payload_as_bytes(frames: &[DataFrame]) -> Vec<u8> {
+        frames
+            .iter()
+            .flat_map(|frame| &frame.payload[..])
+            .cloned()
+            .collect()
     }
-    pub fn frames_as_string(frames: &[DataFrame]) -> Result<String, std::str::Utf8Error> {
-        let mut str = "".to_string();
-        for frame in frames {
-            str += &frame.as_string()?;
+    pub fn payload_as_string(frames: &[DataFrame]) -> Result<String, std::str::Utf8Error> {
+        let bytes = Self::payload_as_bytes(frames);
+        let str = std::str::from_utf8(&bytes);
+        if let Ok(str) = str {
+            return Ok(str.to_owned());
         }
-        Ok(str)
+        Err(str.unwrap_err())
     }
 }
