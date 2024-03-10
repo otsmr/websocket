@@ -1,9 +1,13 @@
 # from scratch
-Implementing the WebSocket protocol in C++ and Rust from scratch. 
+Implementing the WebSocket protocol in C++ from scratch.
 
 # goal
-The primary goal is **to learn stuff on a project**. The goal is to implement the **WebSocket** protocol from scratch. I like to implement everything I need to do this myself, like SHA-1.  
-Finally, once I have implemented all the MUST requirements, I want to find security vulnerabilities in my implementation (one is currently becoming a new CTF Challenge :^)), as well as intentionally add a few of my own to make CTFs challenges.
+The primary goal is **to learn stuff on a project**. The goal is to implement
+the **WebSocket** protocol from scratch. I like to implement everything I need
+to do this myself, like SHA-1.  Finally, once I have implemented all the MUST
+requirements, I want to find security vulnerabilities in my implementation (one
+is currently becoming a new CTF Challenge :^)), as well as intentionally add a
+few of my own to make CTFs challenges.
 
 ## standards
 ### already implemented
@@ -16,7 +20,7 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 - MAYBE: [WS: permessage-deflate](https://www.rfc-editor.org/rfc/rfc7692.html)
 - MAYBE: [WS: DEFLATE](https://www.rfc-editor.org/rfc/rfc1951)
 - 32 and 64 bit support
-- Sockets: IPv6 support 
+- Sockets: IPv6 support
 - Make more stable (add more tests etc.)
 - node.js wrapper
 
@@ -44,9 +48,6 @@ Finally, once I have implemented all the MUST requirements, I want to find secur
 ```
 
 # Security
-
-## Rust
-- implement
 
 ## CPP implementation
 - fuzzing (see [cpp/SECURITY](cpp/SECURITY.md))
