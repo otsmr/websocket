@@ -1,0 +1,11 @@
+build/
+build_fuzz/
+.vscode/
+.DS_Store
+buffer.txt
+test/
+Cargo.lock
+target/
+
+tests/reports/servers/*
+!tests/reports/servers/index.json

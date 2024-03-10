@@ -1,6 +1,6 @@
 use log::info;
 
-use websocket::websocket::WebSocket;
+use webrocket::websocket::WebSocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // wsc.close(1000);
         });
         wsc.on_message(|wsc, msg| {
-            wsc.send_message(msg);
+            wsc.send_message(msg.to_owned());
             // wsc.close(1000);
         });
     });

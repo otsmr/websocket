@@ -6,6 +6,7 @@ use std::{collections::HashMap, io};
 
 //     pub query: String,
 // }
+#[derive(Debug)]
 pub struct HttpHeader {
     pub method: String,
     // pub url: Url,

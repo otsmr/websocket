@@ -6,6 +6,7 @@ use tokio::net::TcpListener;
 use tokio::sync::Mutex;
 
 mod connection;
+mod packet;
 use crate::websocket::connection::Connection;
 
 // #[derive(Debug, PartialEq, Eq)]
