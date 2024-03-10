@@ -5,6 +5,29 @@ with [ThePrimeagen](https://twitter.com/ThePrimeagen) ([2022](https://twitter.co
 [2023](https://twitter.com/ThePrimeagen/status/1634328728137265155),
 [2024](https://twitter.com/ThePrimeagen/status/1761068465253744641)).
 
-- 2022: C++
-- 2023: Rust
-- 2024 (current): Zig
+
+## Languages
+### 2024 (current): Zig
+```sh
+cd zig/
+zig build run
+```
+### 2023 - Rust
+```sh
+cd rust/ 
+./cargo run
+```
+### 2022 - C++
+```sh
+cd cpp/
+ ./build.sh run
+```
+
+## Getting started
+1. Select lang and start server (see above)
+2. Create test connection:
+```sh
+cat ./corpus/handshake - | nc localhost 8080
+```
+
+

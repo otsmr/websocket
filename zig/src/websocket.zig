@@ -66,7 +66,7 @@ pub const WebSocketConnection = struct {
 
         var http_request = try parse_http_header(self.allocator, raw_request);
 
-        std.log.info("Complete HS recived: {!}", .{http_request});
+        std.log.info("Complete HS receive: {!}", .{http_request});
     }
 
     pub fn read_loop(self: *WebSocketConnection, comptime H: type, handler: *H) !void {

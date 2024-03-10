@@ -25,7 +25,7 @@ pub fn parse_http_header(allocator: std.mem.Allocator, raw_data: []u8) !HttpHead
                         return error.IllegalMethode;
                     }
                     start = end;
-                    state = .Resource;
+                    state = .Body;
                 }
             },
             .Resource => {},
