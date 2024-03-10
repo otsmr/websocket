@@ -1,0 +1,26 @@
+{
+  "options": {},
+  "outdir": "./reports/servers",
+  "servers": [
+    {
+      "agent": "AVR / W5100 / Ethernet",
+      "url": "ws://host.docker.internal:9001"
+    }
+  ],
+  "_cases": [
+  ],
+   "cases": [
+     "1.*",
+     "2.*",
+     "3.*",
+     "4.*",
+     "5.*",
+     "6.*",
+     "7.*",
+     "8.*",
+     "9.*",
+     "10.*"
+  ],
+  "exclude-cases": [],
+  "exclude-agent-cases": {}
+}
