@@ -1,11 +1,17 @@
 [package]
-name = "websocket"
+name = "webrocket"
 version = "0.1.0"
+authors = ["Tobias Müller <git@tsmr.eu>"]
 edition = "2021"
+description = "A closure focused WebSocket server implementation."
+repository = "https://github.com/otsmr/websocket"
+license-file = "LICENCE"
+categories = ["Asynchronous", "Network", "WebSocket"]
+exclude = ["/tests"]
+default-run = "server"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 env_logger = "0.10.0"
 log = "0.4.17"
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["net", "macros", "sync", "time", "io-util", "rt-multi-thread"] }
