@@ -1,7 +1,7 @@
 const std = @import("std");
 const base64 = @import("base64.zig");
 const Dataframe = @import("dataframe.zig").Dataframe;
-const parse_http_header = @import("http.zig").parse_http_header;
+const http = @import("http.zig");
 
 const net = std.net;
 const os = std.os;
@@ -64,9 +64,37 @@ pub const WebSocketConnection = struct {
 
         var raw_request = try self.receive_handshake(&buffer, timeout);
 
-        var http_request = try parse_http_header(self.allocator, raw_request);
+        var http_request = try http.parse_http_request(self.allocator, raw_request);
+        defer http_request.fields.deinit();
+        errdefer http_request.fields.deinit();
 
-        std.log.info("Complete HS receive: {!}", .{http_request});
+        var websocket_key = http_request.fields.get("sec-websocket-key");
+        if (websocket_key) |wke| {
+            if (wke.len != 24) {
+                return error.InvalidSecWebSocketKey;
+            }
+
+            const hardcoded_key = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"[0..36];
+            var request_key: [24 + 36]u8 = undefined;
+            std.mem.copy(u8, request_key[0..], wke);
+            std.mem.copy(u8, request_key[24..], hardcoded_key);
+
+            var hash: [20]u8 = undefined;
+
+            std.crypto.hash.Sha1.hash(&request_key, &hash, .{});
+
+            var response_key_buffer: [30]u8 = undefined;
+            var response_key = try base64.encode(&hash, &response_key_buffer);
+
+            var http_response = try http.http_response_101(self.allocator);
+            try http_response.fields.put("Sec-WebSocket-Accept", response_key);
+
+            var response_buffer: [250]u8 = undefined;
+            const response = try http_response.to_str(&response_buffer);
+            try self.stream.writeAll(response);
+        } else {
+            return error.SecWebSocketKeyMissing;
+        }
     }
 
     pub fn read_loop(self: *WebSocketConnection, comptime H: type, handler: *H) !void {
@@ -105,12 +133,16 @@ pub const WebSocketServer = struct {
         var conn = WebSocketConnection{ .stream = stream, .allocator = self.allocator };
         var handler = try H.init(&conn, context);
         // do handshake
-        try conn.do_handshake(self.config.handshake_timeout_ms);
+        conn.do_handshake(self.config.handshake_timeout_ms) catch {
+            std.log.warn("CREATE ERROR response", .{});
+        };
+
+        std.log.info("Connection etablished!", .{});
         try conn.read_loop(H, &handler);
     }
 };
 
-pub const Config = struct { port: u16 = 8080, address: []const u8 = "127.0.0.1", handshake_timeout_ms: u32 = 10000 };
+pub const Config = struct { port: u16 = 3000, address: []const u8 = "127.0.0.1", handshake_timeout_ms: u32 = 10000 };
 
 pub fn listen(comptime H: type, allocator: Allocator, context: anytype, config: Config) !void {
     var wsserver = try WebSocketServer.init(allocator, config);

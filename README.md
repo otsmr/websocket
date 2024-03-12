@@ -27,7 +27,7 @@ cd cpp/
 1. Select lang and start server (see above)
 2. Create test connection:
 ```sh
-cat ./corpus/handshake - | nc localhost 8080
+cat ./corpus/handshake - | nc localhost 3000
 ```
 
 

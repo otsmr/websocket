@@ -341,10 +341,9 @@ impl Connection {
                         temp_buffer.append(&mut using_buffer.to_vec());
                     }
                     break;
-                } else {
-                    offset += current_offset - last_offset;
-                    temp_buffer.clear();
                 }
+                offset += current_offset - last_offset;
+                temp_buffer.clear();
             }
         }
         self.socket.shutdown().await?;
@@ -367,8 +366,10 @@ impl Connection {
 
         request_key.append(&mut b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11".to_vec());
 
+        log::info!("Request Key: {}", String::from_utf8(request_key.clone()).unwrap());
         let response_key = sha1(request_key).to_vec();
         let response_key = base64::encode(&response_key);
+        log::info!("After sha1: {response_key}");
 
         let mut response = HttpHeader::response_101();
 

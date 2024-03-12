@@ -6,7 +6,7 @@ fn s(w: u32, n: u32) -> u32 {
 pub fn sha1(message: Vec<u8>) -> [u8; 20] {
 
     let mut padding_length = 64 - (message.len() % 64);
-    let mut padding: [u8; (64+5)] = [0; 69];
+    let mut padding: [u8; 64+5] = [0; 69];
 
     // 4. Message Padding
     if padding_length > 0 {
@@ -110,10 +110,14 @@ pub fn sha1(message: Vec<u8>) -> [u8; 20] {
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::Write;
     use crate::sha1::sha1;
 
     fn sha1_as_hex(message: Vec<u8>) -> String {
-        sha1(message).iter().map(|x| format!("{:02x}", x)).collect::<String>()
+        sha1(message).iter().fold(String::new(), |mut out, b| {
+            let _ = write!(out, "{b:02x}");
+            out
+        })
     }
 
     #[test]

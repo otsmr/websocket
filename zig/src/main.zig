@@ -26,8 +26,9 @@ const Handler = struct {
     }
 
     pub fn handle(self: *Handler, df: Dataframe) !void {
+        _ = self;
         std.log.info("New message: {s}", .{df.data});
-        try self.conn.stream.writeAll(df.data[0..]);
+        // try self.conn.stream.writeAll(df.data[0..]);
     }
 };
 
