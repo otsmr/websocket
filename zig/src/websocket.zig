@@ -1,3 +1,7 @@
+//
+// Copyright (c) 2024, Tobias Müller <git@tsmr.eu>
+//
+
 const std = @import("std");
 const base64 = @import("base64.zig");
 const Dataframe = @import("dataframe.zig").Dataframe;

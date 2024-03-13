@@ -1,3 +1,7 @@
+//
+// Copyright (c) 2024, Tobias Müller <git@tsmr.eu>
+//
+
 const std = @import("std");
 
 const Opcode = enum(usize) {
