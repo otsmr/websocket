@@ -25,9 +25,13 @@ const Handler = struct {
         return .{ .conn = conn, .context = context };
     }
 
-    pub fn handle(self: *Handler, df: Dataframe) !void {
+    pub fn handle(self: *Handler, data: ws.WebSocketData) !void {
         _ = self;
-        std.log.info("New message: {s}", .{df.payload[0..15]});
+        var pbuf = data.payload;
+        if (pbuf.len > 15) {
+            pbuf = data.payload[0..15];
+        }
+        std.log.info("New message: {s}", .{pbuf});
     }
 };
 

@@ -36,6 +36,11 @@ pub const Dataframe = struct {
     // exactly the size of the dataframe payload len
     payload: []u8 = undefined,
     consumed_len: u64,
+    allocator: std.mem.Allocator,
+
+    pub fn deinit(self: *Dataframe) void {
+        self.allocator.free(self.payload);
+    }
 
     pub fn is_fully_received(self: *Dataframe) bool {
         return self.get_missing_payload_size() == 0;
@@ -56,7 +61,6 @@ pub const Dataframe = struct {
         } else {
             std.mem.copy(u8, self.payload[self.payload_filled_len..], data);
         }
-        std.log.info("Adding {d} to {d}", .{ data.len, self.payload_filled_len });
         self.payload_filled_len += data.len;
     }
 
@@ -149,13 +153,6 @@ pub const Dataframe = struct {
             }
         }
 
-        return Dataframe{
-            .opcode = opcode,
-            .masking_key = masking_key,
-            .payload = payload,
-            .payload_filled_len = payload_filled_len,
-            .flags = flags,
-            .consumed_len = payload_filled_len + header_size,
-        };
+        return Dataframe{ .opcode = opcode, .masking_key = masking_key, .payload = payload, .payload_filled_len = payload_filled_len, .flags = flags, .consumed_len = payload_filled_len + header_size, .allocator = allocator };
     }
 };

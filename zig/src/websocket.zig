@@ -7,6 +7,13 @@ const net = std.net;
 const os = std.os;
 const Allocator = std.mem.Allocator;
 
+pub const WebSocketDataType = enum { Text, Binary };
+
+pub const WebSocketData = struct {
+    type: WebSocketDataType,
+    payload: []u8,
+};
+
 pub const Config = struct { port: u16 = 3000, address: []const u8 = "127.0.0.1", handshake_timeout_ms: u32 = 10000 };
 
 pub fn listen(comptime H: type, allocator: Allocator, context: anytype, config: Config) !void {
@@ -80,8 +87,11 @@ pub const WebSocketConnection = struct {
     fn read_loop(self: *WebSocketConnection, comptime H: type, handler: *H) !void {
         var read_buffer: [1024]u8 = undefined;
         var frame_not_fully_received: ?Dataframe = null;
-        var continuation_frames: []Dataframe = try self.allocator.alloc(Dataframe, 100);
+        defer if (frame_not_fully_received != null) frame_not_fully_received.?.deinit();
+
+        var continuation_frames: []Dataframe = try self.allocator.alloc(Dataframe, 10);
         defer self.allocator.free(continuation_frames);
+
         var continuation_frames_len: usize = 0;
 
         while (true) {
@@ -91,6 +101,7 @@ pub const WebSocketConnection = struct {
                 self.state = .Disconnected;
                 break;
             }
+
             var offset: usize = 0;
 
             while (offset < size) {
@@ -114,17 +125,53 @@ pub const WebSocketConnection = struct {
 
                 if (frame.is_fully_received()) {
                     if (frame.flags.fin) {
-                        std.log.warn("Handler should get only ONE CUSTOM Data object");
                         switch (frame.opcode) {
+                            .Ping => {
+                                unreachable;
+                            },
+                            .Pong => {
+                                unreachable;
+                            },
+                            .ConectionClose => {
+                                unreachable;
+                            },
                             .ContinuationFrame => {
-                                std.log.info("Got {d} ContinuationFrames", .{continuation_frames_len});
+                                continuation_frames[continuation_frames_len] = frame;
+                                continuation_frames_len += 1;
+
+                                var data_type: WebSocketDataType = .Text;
+                                if (continuation_frames[0].opcode == .BinaryFrame) {
+                                    data_type = .Binary;
+                                } else {
+                                    return error.OpcodeDoesNotSupportContinuation;
+                                }
+
+                                var payload_size_full: u64 = 0;
+                                for (0..continuation_frames_len) |i| {
+                                    payload_size_full += continuation_frames[i].payload.len;
+                                }
+
+                                var data_buf = try self.allocator.alloc(u8, payload_size_full);
+                                var cursor: u64 = 0;
+                                for (0..continuation_frames_len) |i| {
+                                    // payload_size_full += continuation_frames[i].payload.len;
+                                    std.mem.copy(u8, data_buf[cursor..], continuation_frames[i].payload);
+                                    cursor += continuation_frames[i].payload.len;
+                                    // free allocated memory
+                                    continuation_frames[i].deinit();
+                                }
                                 // get collected frames
                                 continuation_frames_len = 0;
+                                const data = WebSocketData{ .type = data_type, .payload = data_buf };
+                                try handler.handle(data);
                             },
                             else => {
-                                // send to the handle only a DATA object
-                                // containing only the type and the len
-                                try handler.handle(frame);
+                                var data_type: WebSocketDataType = .Text;
+                                if (frame.opcode == .BinaryFrame) {
+                                    data_type = .Binary;
+                                }
+                                const data = WebSocketData{ .type = data_type, .payload = frame.payload };
+                                try handler.handle(data);
                             },
                         }
                     } else {
