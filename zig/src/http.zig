@@ -18,6 +18,7 @@ const HttpHeader = struct {
             return error.NoStatusCodeGiven;
         }
     }
+
     pub fn to_str(self: *HttpHeader, buffer: []u8) ![]u8 {
         var status_code: usize = 200;
         if (self.status_code) |sc| {

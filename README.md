@@ -30,4 +30,19 @@ cd cpp/
 cat ./corpus/handshake - | nc localhost 3000
 ```
 
+## tests
 
+The server implementation can be tested with the
+[Autobahn|Testsuite](https://github.com/crossbario/autobahn-testsuite) as
+follows:
+
+```bash
+(rust) $ RUST_LOG=debug cargo run --bin wsserver_autobahn
+
+$ docker run -it --rm --net=host \
+  -v "${PWD}/tests:/config" \
+  -v "${PWD}/tests/reports:/reports" \
+  --name fuzzingclient \
+  crossbario/autobahn-testsuite \
+  wstest -m fuzzingclient --spec /config/fuzzingclient.json
+```
