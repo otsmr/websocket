@@ -83,6 +83,7 @@ pub const Dataframe = struct {
 
         var header_size: usize = 2;
 
+        HERE is an error :/
         if (self.payload.len > 0xFFFF) {
             buf[1] |= 127;
             for (0..8) |i| {

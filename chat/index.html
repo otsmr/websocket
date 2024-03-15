@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chat</title>
+</head>
+<body style="display: flex; gap: 12px;">
+
+  <nav style="width: 300px;">
+    <h1>All users</h1>
+    <ul id="users"></ul>
+  </nav>
+
+  <main style="flex: 1">
+    <p>Status: <span id="state">Disconnected</span><br /> <button onclick="socket.close()">Close</button> </p>
+
+    <section id="signForm">
+
+      <form onsubmit="return signInOrUp(this)">
+        <h1>Login/Register</h1>
+        <input type="text" placeholder="Username" name="username" value="otto"> <br>
+        <input type="password" placeholder="Password" name="password" value="1234"> <br>
+        <button type="submit">Sign in or register</button>
+      </form>
+
+    </section>
+
+    <section id="chatWindow" hidden>
+      <h1>Hello <span id="username"></span>!</h1>
+      <div style="max-height: 200px; overflow: auto;border:1px solid black;">
+        <pre id="messages"></pre>
+      </div>
+
+      <textarea id="message" placeholder="Nachricht senden">Hallo</textarea> <br />
+      <button onclick="send()" >Senden</button><br /><br />
+    </section>
+
+  </main>
+
+  <script>
+
+    var socket = null;
+    var messages = {};
+    var openChatUser = null;
+
+    function updateMessages() {
+      if (socket == null) return;
+      if (openChatUser == null) return;
+      console.log("Update messages");
+      <!-- server_messages.innerText = "["+new Date().toString().slice(16, 24)+"] " + m.data + "\n" + server_messages.innerText; -->
+    }
+
+    function updateUserList() {
+      if (socket == null) return;
+
+    }
+
+    function signInOrUp(form) {
+      let data = new FormData(form);
+      let registerData = {
+        kind: "login",
+        user: {
+          username: data.get("username"),
+          password: data.get("password")
+        }
+      };
+
+      socket.send(JSON.stringify(registerData));
+      return false;
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function activate_session(name) {
+      console.log("Hello", name);
+      username.innerText = name;
+      chatWindow.hidden = false;
+      signForm.hidden = true;
+
+
+    }
+
+    function check_old_session() {
+      if (socket === null) return;
+      const session_id = getCookie("session_id");
+      if (session_id === undefined) return;
+      console.log("Found session: ", session_id);
+      socket.send(JSON.stringify({
+        kind: "check-sesison",
+        session_id: session_id
+      }));
+    }
+
+    function connect () {
+      state.innerText = "Connecting... ";
+      socket = new WebSocket('ws://localhost:3000');
+      socket.onerror = e => console.log("[ERROR]", e);
+
+      socket.onmessage =  m => {
+        console.log(m);
+        const data = JSON.parse(m.data);
+        switch (data["kind"]) {
+          case "error": alert(data['err']['message']); break;
+          case "new-user": updateUserList(); break;
+          case "session":
+            document.cookie = "session_id=" + data["session_id"];
+            activate_session(data["user"]["username"]);
+            break;
+          case "new-msg":
+            if (messages[data['username']] === undefined) {
+              messages[data['username']] = [];
+            }
+            messages[data['username']].push(data['msg']);
+            updateMessages();
+            break;
+          default: alert("Unknown error :/");
+        }
+      };
+      socket.onclose = e => {
+        state.innerText = "Disconnected (" + e.code + ")";
+        socket = null;
+      };
+      socket.onopen = _ => {
+        state.innerText = "Connected ";
+        check_old_session();
+      };
+    }
+    connect();
+  </script>
+</body>
+</html>

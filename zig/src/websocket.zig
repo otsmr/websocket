@@ -88,12 +88,20 @@ pub const WebSocketConnection = struct {
     allocator: Allocator,
     state: ConnectionState = .Disconnected,
 
+    pub fn sendText(self: *WebSocketConnection, text: []const u8) !void {
+        var buffer: [1000]u8 = undefined;
+        std.mem.copy(u8, &buffer, text);
+        const data = WebSocketData{ .type = .Text, .payload = buffer[0..text.len] };
+        try self.send(data);
+    }
+
     pub fn send(self: *WebSocketConnection, data: WebSocketData) !void {
         var frame = try Dataframe.from_websocket_data(self.allocator, data);
-
         var raw_bytes = try frame.to_raw_bytes();
 
+        std.log.info("Sending raw bytes", .{});
         self.stream.writeAll(raw_bytes) catch |err| {
+            std.log.warn("Error sending!", .{});
             // TODO: handle error and close socket
             return err;
         };
@@ -123,6 +131,7 @@ pub const WebSocketConnection = struct {
                 const buf = read_buffer[offset..size];
 
                 var frame: Dataframe = undefined;
+                defer frame.deinit();
 
                 if (frame_not_fully_received != null) {
                     var missing = frame_not_fully_received.?.get_missing_payload_size();
@@ -148,7 +157,8 @@ pub const WebSocketConnection = struct {
                                 unreachable;
                             },
                             .ConectionClose => {
-                                unreachable;
+                                std.log.warn("Implement ConnectionClose", .{});
+                                // self.stream.close();
                             },
                             .ContinuationFrame => {
                                 continuation_frames[continuation_frames_len] = frame;
@@ -200,10 +210,6 @@ pub const WebSocketConnection = struct {
                     frame_not_fully_received = frame;
                 }
             }
-
-            // if (comptime std.meta.hasFn(H, "afterInit")) {
-            // 	handler.afterInit() catch return;
-            // }
         }
         self.stream.close();
     }
