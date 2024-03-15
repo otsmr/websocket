@@ -3,6 +3,7 @@
 //
 
 const std = @import("std");
+const ws = @import("websocket.zig");
 
 const Opcode = enum(usize) {
     ContinuationFrame = 0x0,
@@ -20,6 +21,25 @@ const DataFrameFlags = struct {
     rsv3: bool,
     mask: bool,
 
+    fn to_bytes(self: *DataFrameFlags) [2]u8 {
+        var ret: [2]u8 = .{ 0, 0 };
+        if (self.mask) {
+            ret[1] |= 1 << 7;
+        }
+        if (self.fin) {
+            ret[0] |= 1 << 7;
+        }
+        if (self.rsv1) {
+            ret[0] |= 1 << 6;
+        }
+        if (self.rsv2) {
+            ret[0] |= 1 << 5;
+        }
+        if (self.rsv3) {
+            ret[0] |= 1 << 4;
+        }
+        return ret;
+    }
     fn from_bytes(b1: u8, b2: u8) DataFrameFlags {
         return DataFrameFlags{
             .fin = (b1 & (1 << 7)) > 0,
@@ -34,13 +54,51 @@ const DataFrameFlags = struct {
 pub const Dataframe = struct {
     opcode: Opcode,
     flags: DataFrameFlags,
-    masking_key: [4]u8,
-    payload_filled_len: u64,
+    masking_key: ?[4]u8 = null,
+    payload_filled_len: u64 = 0,
     // Will be allocated with the payload_len so the payload.len will be
     // exactly the size of the dataframe payload len
     payload: []u8 = undefined,
-    consumed_len: u64,
+    consumed_len: u64 = 0,
     allocator: std.mem.Allocator,
+
+    pub fn from_websocket_data(allocator: std.mem.Allocator, data: ws.WebSocketData) !Dataframe {
+        var opcode: Opcode = undefined;
+        switch (data.type) {
+            .Text => opcode = Opcode.TextFrame,
+            .Binary => opcode = Opcode.BinaryFrame,
+        }
+        var flags = DataFrameFlags.from_bytes(0, 0);
+        flags.fin = true;
+        return Dataframe{ .opcode = opcode, .flags = flags, .payload = data.payload, .payload_filled_len = data.payload.len, .allocator = allocator };
+    }
+
+    pub fn to_raw_bytes(self: *Dataframe) ![]u8 {
+        var buf = try self.allocator.alloc(u8, self.payload.len + 100);
+        var flags = self.flags.to_bytes();
+
+        buf[0] = @intCast(@intFromEnum(self.opcode));
+        buf[0] |= flags[0];
+        buf[1] = flags[1];
+
+        var header_size: usize = 2;
+
+        if (self.payload.len > 0xFFFF) {
+            buf[1] |= 127;
+            for (0..8) |i| {
+                buf[header_size + i] = @intCast(self.payload.len >> @intCast(((7 - i) * 8)));
+            }
+            header_size += 8;
+        } else if (self.payload.len >= 126) {
+            buf[1] |= 126;
+            buf[header_size] = @intCast(self.payload.len >> 8 & 0xff);
+            buf[header_size + 1] = @intCast(self.payload.len & 0xff);
+        } else {
+            buf[1] |= @intCast(self.payload.len);
+        }
+        std.mem.copy(u8, buf[header_size..], self.payload);
+        return buf[0 .. header_size + self.payload.len];
+    }
 
     pub fn deinit(self: *Dataframe) void {
         self.allocator.free(self.payload);
@@ -60,7 +118,7 @@ pub const Dataframe = struct {
         if (self.flags.mask) {
             for (0..data.len) |i| {
                 const index = self.payload_filled_len + i;
-                self.payload[index] = data[i] ^ self.masking_key[index % 4];
+                self.payload[index] = data[i] ^ self.masking_key.?[index % 4];
             }
         } else {
             std.mem.copy(u8, self.payload[self.payload_filled_len..], data);

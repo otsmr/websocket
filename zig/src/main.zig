@@ -30,12 +30,18 @@ const Handler = struct {
     }
 
     pub fn handle(self: *Handler, data: ws.WebSocketData) !void {
-        _ = self;
         var pbuf = data.payload;
         if (pbuf.len > 15) {
             pbuf = data.payload[0..15];
         }
         std.log.info("New message: {s}", .{pbuf});
+
+        var buffer: [22]u8 = undefined;
+        var payload = "Hallo ich bin ein TEST";
+        std.mem.copy(u8, &buffer, payload);
+        const resp = ws.WebSocketData{ .type = .Text, .payload = buffer[0..] };
+
+        try self.conn.send(resp);
     }
 };
 

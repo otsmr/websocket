@@ -88,6 +88,17 @@ pub const WebSocketConnection = struct {
     allocator: Allocator,
     state: ConnectionState = .Disconnected,
 
+    pub fn send(self: *WebSocketConnection, data: WebSocketData) !void {
+        var frame = try Dataframe.from_websocket_data(self.allocator, data);
+
+        var raw_bytes = try frame.to_raw_bytes();
+
+        self.stream.writeAll(raw_bytes) catch |err| {
+            // TODO: handle error and close socket
+            return err;
+        };
+    }
+
     fn read_loop(self: *WebSocketConnection, comptime H: type, handler: *H) !void {
         var read_buffer: [1024]u8 = undefined;
         var frame_not_fully_received: ?Dataframe = null;
