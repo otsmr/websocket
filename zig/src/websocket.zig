@@ -202,8 +202,8 @@ pub const WebSocketConnection = struct {
 
                 switch (frame.opcode) {
                     .Ping => {
-                        const pong = try Dataframe.get_pong(self.allocator);
-                        self.stream.writeAll(pong.to_raw_bytes());
+                        var pong = try Dataframe.get_pong(self.allocator);
+                        try self.stream.writeAll(try pong.to_raw_bytes());
                     },
                     .Pong => {
                         unreachable;

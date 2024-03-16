@@ -63,7 +63,7 @@ pub const Dataframe = struct {
     allocator: std.mem.Allocator,
 
     pub fn get_pong(allocator: std.mem.Allocator) !Dataframe {
-        var payload: [0]u8 = .{};
+        var payload = try allocator.alloc(u8, 0);
         var flags = DataFrameFlags.from_bytes(0, 0);
         flags.fin = true;
         return Dataframe{ .opcode = .Pong, .flags = flags, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
