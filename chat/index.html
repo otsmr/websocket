@@ -7,13 +7,18 @@
 </head>
 <body style="display: flex; gap: 12px;">
 
-  <nav style="width: 300px;">
+  <nav id="allUsers" hidden style="width: 200px;">
     <h1>All users</h1>
-    <ul id="users"></ul>
+    <ul id="usernamesList"></ul>
   </nav>
 
   <main style="flex: 1">
-    <p>Status: <span id="state">Disconnected</span><br /> <button onclick="socket.close()">Close</button> </p>
+
+    <p>
+      Status: <span id="state">Disconnected</span>
+      <button onclick="closeConnection();">Close</button>
+      <button onclick="deleteCookie('session_id');location.reload()">Logout</button>
+    </p>
 
     <section id="signForm">
 
@@ -26,14 +31,19 @@
 
     </section>
 
-    <section id="chatWindow" hidden>
+    <section id="welcomeHeader" hidden>
       <h1>Hello <span id="username"></span>!</h1>
-      <div style="max-height: 200px; overflow: auto;border:1px solid black;">
-        <pre id="messages"></pre>
-      </div>
+    </section>
 
-      <textarea id="message" placeholder="Nachricht senden">Hallo</textarea> <br />
-      <button onclick="send()" >Senden</button><br /><br />
+    <section id="chatWindow" hidden>
+      <h3>Your chat with <span id="otherUser"></span>.</h3>
+      <div id="scrollDiv" style="height: 200px; overflow: auto;border:1px solid black;">
+        <pre id="currentMessages"></pre>
+      </div>
+      <form onsubmit="return sendMessageTo();">
+        <input id="myMessage" placeholder="Nachricht senden">
+        <button type="submit" >Senden</button>
+      </form>
     </section>
 
   </main>
@@ -42,18 +52,58 @@
 
     var socket = null;
     var messages = {};
-    var openChatUser = null;
+    var myUserName = null;
+    var openChatWithUser = null;
 
     function updateMessages() {
       if (socket == null) return;
-      if (openChatUser == null) return;
-      console.log("Update messages");
-      <!-- server_messages.innerText = "["+new Date().toString().slice(16, 24)+"] " + m.data + "\n" + server_messages.innerText; -->
+      if (openChatWithUser == null) return;
+
+      var displayMessages = messages[openChatWithUser];
+      if (displayMessages == null) return;
+
+      var newMessageString = "";
+
+      for (var message of displayMessages) {
+        var time = new Date(message.created_at).toString().slice(16, 24);
+        newMessageString += `[${time}] ${message.from}\n${message.message}\n\n`;
+      }
+      currentMessages.innerText += newMessageString.replace(currentMessages.innerText, "");
+      scrollDiv.scrollTo(0, scrollDiv.scrollTopMax)
+
     }
 
-    function updateUserList() {
-      if (socket == null) return;
+    function sendMessageTo() {
+      socket.send(JSON.stringify({
+        kind: "new-message",
+        message: {
+          from: myUserName,
+          to: openChatWithUser,
+          message: myMessage.value,
+          created_at: +new Date(),
+        }
+      }));
+      return false;
+    }
 
+    function openChatWith(username) {
+      otherUser.innerText = username;
+      chatWindow.hidden = false;
+      openChatWithUser = username;
+      currentMessages.innerText = "";
+      updateMessages();
+    }
+
+    function updateUserList(usernames) {
+      if (socket == null) return;
+      var list = "";
+      for (var username of usernames) {
+        username = escape(username);
+        if (username == myUserName) continue;
+        console.log(username, myUserName);
+        list += `<li onclick="openChatWith('${username}')">${username}</li>`;
+      }
+      usernamesList.innerHTML = list;
     }
 
     function signInOrUp(form) {
@@ -75,11 +125,18 @@
       const parts = value.split(`; ${name}=`);
       if (parts.length === 2) return parts.pop().split(';').shift();
     }
+    function deleteCookie( name ) {
+      if (getCookie(name)) {
+        document.cookie = name + "=" +
+          ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      }
+    }
 
     function activate_session(name) {
       console.log("Hello", name);
       username.innerText = name;
-      chatWindow.hidden = false;
+      welcomeHeader.hidden = false;
+      allUsers.hidden = false;
       signForm.hidden = true;
 
 
@@ -91,9 +148,15 @@
       if (session_id === undefined) return;
       console.log("Found session: ", session_id);
       socket.send(JSON.stringify({
-        kind: "check-sesison",
+        kind: "check-session",
         session_id: session_id
       }));
+    }
+
+    function closeConnection() {
+      state.innerText = "Closed";
+      socket.close();
+      socket = null;
     }
 
     function connect () {
@@ -106,16 +169,28 @@
         const data = JSON.parse(m.data);
         switch (data["kind"]) {
           case "error": alert(data['err']['message']); break;
-          case "new-user": updateUserList(); break;
+          case "update-online-users":
+            updateUserList(data["online_users"]["usernames"]);
+            console.log(data);
+            break;
+          case "invalid-session":
+            console.log("Invalid cookie");
+            deleteCookie("session_id");
+            break;
           case "session":
             document.cookie = "session_id=" + data["session_id"];
             activate_session(data["user"]["username"]);
+            myUserName = data["user"]["username"];
             break;
-          case "new-msg":
-            if (messages[data['username']] === undefined) {
-              messages[data['username']] = [];
+          case "new-message":
+            var otherUser = data["message"]["from"];
+            if (otherUser == myUserName) {
+              otherUser = data["message"]["to"];
             }
-            messages[data['username']].push(data['msg']);
+            if (messages[otherUser] === undefined) {
+              messages[otherUser] = [];
+            }
+            messages[otherUser].push(data['message']);
             updateMessages();
             break;
           default: alert("Unknown error :/");

@@ -72,7 +72,25 @@ pub const WebSocketServer = struct {
 
         std.log.info("New connection established!", .{});
 
-        try conn.read_loop(H, &handler);
+        conn.read_loop(H, &handler) catch |err| {
+            std.log.warn("Connection error {any}", .{err});
+
+            if (@hasDecl(H, "onError")) {
+                // if (comptime std.meta.hasFn(H, "onError")) {
+                try handler.onError();
+                return;
+            }
+        };
+
+        std.log.info("Connection is closing", .{});
+
+        if (@hasDecl(H, "onClose")) {
+            std.log.info("Handler was called", .{});
+            try handler.onClose();
+            return;
+        }
+
+        self.stream.close();
     }
 };
 
@@ -117,12 +135,33 @@ pub const WebSocketConnection = struct {
 
         var continuation_frames_len: usize = 0;
 
+        const cronJobTimeout = 1000;
+        const cronjob_timeout = std.mem.toBytes(os.timeval{
+            .tv_sec = @intCast(@divTrunc(cronJobTimeout, 1000)),
+            .tv_usec = @intCast(@mod(cronJobTimeout, 1000) * 1000),
+        });
+
+        try std.os.setsockopt(self.stream.handle, os.SOL.SOCKET, os.SO.RCVTIMEO, &cronjob_timeout);
+
         while (true) {
-            const size = try self.stream.read(&read_buffer);
+            const size = self.stream.read(&read_buffer) catch |err| {
+                if (err == error.WouldBlock) {
+                    if (@hasDecl(H, "cronJob")) {
+                        handler.cronJob() catch return;
+                    }
+                    continue;
+                }
+
+                return err;
+            };
 
             if (size == 0) {
                 self.state = .Disconnected;
                 break;
+            }
+
+            if (@hasDecl(H, "cronJob")) {
+                handler.cronJob() catch return;
             }
 
             var offset: usize = 0;
@@ -158,7 +197,7 @@ pub const WebSocketConnection = struct {
                             },
                             .ConectionClose => {
                                 std.log.warn("Implement ConnectionClose", .{});
-                                // self.stream.close();
+                                return;
                             },
                             .ContinuationFrame => {
                                 continuation_frames[continuation_frames_len] = frame;
@@ -188,7 +227,7 @@ pub const WebSocketConnection = struct {
                                 // get collected frames
                                 continuation_frames_len = 0;
                                 const data = WebSocketData{ .type = data_type, .payload = data_buf };
-                                try handler.handle(data);
+                                try handler.onMessage(data);
                             },
                             else => {
                                 var data_type: WebSocketDataType = .Text;
@@ -196,7 +235,7 @@ pub const WebSocketConnection = struct {
                                     data_type = .Binary;
                                 }
                                 const data = WebSocketData{ .type = data_type, .payload = frame.payload };
-                                try handler.handle(data);
+                                try handler.onMessage(data);
                             },
                         }
                     } else {
@@ -211,7 +250,6 @@ pub const WebSocketConnection = struct {
                 }
             }
         }
-        self.stream.close();
     }
 
     fn do_handshake(self: *WebSocketConnection, timeout: ?u32) !void {
