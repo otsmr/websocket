@@ -70,7 +70,6 @@
       }
       currentMessages.innerText += newMessageString.replace(currentMessages.innerText, "");
       scrollDiv.scrollTo(0, scrollDiv.scrollTopMax)
-
     }
 
     function sendMessageTo() {
@@ -108,28 +107,14 @@
 
     function signInOrUp(form) {
       let data = new FormData(form);
-      let registerData = {
+      socket.send(JSON.stringify({
         kind: "login",
         user: {
           username: data.get("username"),
           password: data.get("password")
         }
-      };
-
-      socket.send(JSON.stringify(registerData));
+      }));
       return false;
-    }
-
-    function getCookie(name) {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop().split(';').shift();
-    }
-    function deleteCookie( name ) {
-      if (getCookie(name)) {
-        document.cookie = name + "=" +
-          ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
-      }
     }
 
     function activate_session(name) {
@@ -138,15 +123,12 @@
       welcomeHeader.hidden = false;
       allUsers.hidden = false;
       signForm.hidden = true;
-
-
     }
 
     function check_old_session() {
       if (socket === null) return;
       const session_id = getCookie("session_id");
       if (session_id === undefined) return;
-      console.log("Found session: ", session_id);
       socket.send(JSON.stringify({
         kind: "check-session",
         session_id: session_id
@@ -205,7 +187,23 @@
         check_old_session();
       };
     }
+
     connect();
+
+    // helper functions from stackoverflow xD
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function deleteCookie( name ) {
+      if (getCookie(name)) {
+        document.cookie = name + "=" +
+          ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      }
+    }
+
   </script>
 </body>
 </html>

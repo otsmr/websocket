@@ -12,6 +12,9 @@ with [ThePrimeagen](https://twitter.com/ThePrimeagen) ([2022](https://twitter.co
 cd zig/
 zig build run
 ```
+
+Then open `chat.html` for a simple chat application.
+
 ### 2023 - Rust
 ```sh
 cd rust/
