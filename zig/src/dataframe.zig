@@ -83,7 +83,6 @@ pub const Dataframe = struct {
 
         var header_size: usize = 2;
 
-        HERE is an error :/
         if (self.payload.len > 0xFFFF) {
             buf[1] |= 127;
             for (0..8) |i| {
@@ -94,6 +93,7 @@ pub const Dataframe = struct {
             buf[1] |= 126;
             buf[header_size] = @intCast(self.payload.len >> 8 & 0xff);
             buf[header_size + 1] = @intCast(self.payload.len & 0xff);
+            header_size += 2;
         } else {
             buf[1] |= @intCast(self.payload.len);
         }
