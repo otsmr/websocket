@@ -186,67 +186,70 @@ pub const WebSocketConnection = struct {
                     offset += frame.consumed_len;
                 }
 
-                if (frame.is_fully_received()) {
-                    if (frame.flags.fin) {
-                        switch (frame.opcode) {
-                            .Ping => {
-                                unreachable;
-                            },
-                            .Pong => {
-                                unreachable;
-                            },
-                            .ConectionClose => {
-                                std.log.warn("Implement ConnectionClose", .{});
-                                return;
-                            },
-                            .ContinuationFrame => {
-                                continuation_frames[continuation_frames_len] = frame;
-                                continuation_frames_len += 1;
+                if (!frame.is_fully_received()) {
+                    frame_not_fully_received = frame;
+                    continue;
+                }
 
-                                var data_type: WebSocketDataType = .Text;
-                                if (continuation_frames[0].opcode == .BinaryFrame) {
-                                    data_type = .Binary;
-                                } else {
-                                    return error.OpcodeDoesNotSupportContinuation;
-                                }
+                if (!frame.flags.fin) {
+                    if (continuation_frames_len > continuation_frames.len) {
+                        continuation_frames = try self.allocator.realloc(continuation_frames, continuation_frames_len + 10);
+                    }
+                    continuation_frames[continuation_frames_len] = frame;
+                    continuation_frames_len += 1;
+                    continue;
+                }
 
-                                var payload_size_full: u64 = 0;
-                                for (0..continuation_frames_len) |i| {
-                                    payload_size_full += continuation_frames[i].payload.len;
-                                }
-
-                                var data_buf = try self.allocator.alloc(u8, payload_size_full);
-                                var cursor: u64 = 0;
-                                for (0..continuation_frames_len) |i| {
-                                    // payload_size_full += continuation_frames[i].payload.len;
-                                    std.mem.copy(u8, data_buf[cursor..], continuation_frames[i].payload);
-                                    cursor += continuation_frames[i].payload.len;
-                                    // free allocated memory
-                                    continuation_frames[i].deinit();
-                                }
-                                // get collected frames
-                                continuation_frames_len = 0;
-                                const data = WebSocketData{ .type = data_type, .payload = data_buf };
-                                try handler.onMessage(data);
-                            },
-                            else => {
-                                var data_type: WebSocketDataType = .Text;
-                                if (frame.opcode == .BinaryFrame) {
-                                    data_type = .Binary;
-                                }
-                                const data = WebSocketData{ .type = data_type, .payload = frame.payload };
-                                try handler.onMessage(data);
-                            },
-                        }
-                    } else {
-                        if (continuation_frames_len > continuation_frames.len) {
-                            continuation_frames = try self.allocator.realloc(continuation_frames, continuation_frames_len + 10);
-                        }
+                switch (frame.opcode) {
+                    .Ping => {
+                        const pong = try Dataframe.get_pong(self.allocator);
+                        self.stream.writeAll(pong.to_raw_bytes());
+                    },
+                    .Pong => {
+                        unreachable;
+                    },
+                    .ConectionClose => {
+                        std.log.warn("Implement ConnectionClose", .{});
+                        return;
+                    },
+                    .ContinuationFrame => {
                         continuation_frames[continuation_frames_len] = frame;
                         continuation_frames_len += 1;
-                    }
-                } else {
-                    frame_not_fully_received = frame;
+
+                        var data_type: WebSocketDataType = .Text;
+                        if (continuation_frames[0].opcode == .BinaryFrame) {
+                            data_type = .Binary;
+                        } else {
+                            return error.OpcodeDoesNotSupportContinuation;
+                        }
+
+                        var payload_size_full: u64 = 0;
+                        for (0..continuation_frames_len) |i| {
+                            payload_size_full += continuation_frames[i].payload.len;
+                        }
+
+                        var data_buf = try self.allocator.alloc(u8, payload_size_full);
+                        var cursor: u64 = 0;
+                        for (0..continuation_frames_len) |i| {
+                            // payload_size_full += continuation_frames[i].payload.len;
+                            std.mem.copy(u8, data_buf[cursor..], continuation_frames[i].payload);
+                            cursor += continuation_frames[i].payload.len;
+                            // free allocated memory
+                            continuation_frames[i].deinit();
+                        }
+                        // get collected frames
+                        continuation_frames_len = 0;
+                        const data = WebSocketData{ .type = data_type, .payload = data_buf };
+                        try handler.onMessage(data);
+                    },
+                    else => {
+                        var data_type: WebSocketDataType = .Text;
+                        if (frame.opcode == .BinaryFrame) {
+                            data_type = .Binary;
+                        }
+                        const data = WebSocketData{ .type = data_type, .payload = frame.payload };
+                        try handler.onMessage(data);
+                    },
                 }
             }
         }

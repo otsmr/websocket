@@ -62,6 +62,13 @@ pub const Dataframe = struct {
     consumed_len: u64 = 0,
     allocator: std.mem.Allocator,
 
+    pub fn get_pong(allocator: std.mem.Allocator) !Dataframe {
+        var payload: [0]u8 = .{};
+        var flags = DataFrameFlags.from_bytes(0, 0);
+        flags.fin = true;
+        return Dataframe{ .opcode = .Pong, .flags = flags, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
+    }
+
     pub fn from_websocket_data(allocator: std.mem.Allocator, data: ws.WebSocketData) !Dataframe {
         var opcode: Opcode = undefined;
         switch (data.type) {
