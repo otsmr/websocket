@@ -2,24 +2,23 @@
   "options": {},
   "outdir": "./reports/servers",
   "servers": [
-    {
-      "agent": "AVR / W5100 / Ethernet",
-      "url": "ws://host.docker.internal:9001"
-    }
+    { "agent": "Server1", "url": "ws://host.docker.internal:3000" }
   ],
   "_cases": [
+    "1.*",
+    "2.*",
+    "3.*",
+    "4.*",
+    "5.*",
+    "6.*",
+    "7.*",
+    "8.*",
+    "9.*",
+    "10.*",
+    "9.4.1"
   ],
    "cases": [
-     "1.*",
-     "2.*",
-     "3.*",
-     "4.*",
-     "5.*",
-     "6.*",
-     "7.*",
-     "8.*",
-     "9.*",
-     "10.*"
+    "9.3.1"
   ],
   "exclude-cases": [],
   "exclude-agent-cases": {}

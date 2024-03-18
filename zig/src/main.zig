@@ -17,55 +17,50 @@ pub fn main() !void {
 
     std.log.info("Starting WebSocket Server", .{});
 
-    var ctx = try chat.ChatContext.init(allocator);
-    defer ctx.deinit();
+    if (true) {
+        var ctx = Context{};
+        try ws.listen(AutoBahnHandler, allocator, &ctx, .{});
+    } else {
+        var ctx = try chat.ChatContext.init(allocator);
+        defer ctx.deinit();
 
-    while (true) {
-        ws.listen(chat.ChatHandler, allocator, &ctx, .{}) catch |err| {
-            if (err != error.AddressInUse) {
-                return err;
-            }
-        };
+        while (true) {
+            ws.listen(chat.ChatHandler, allocator, &ctx, .{}) catch |err| {
+                if (err != error.AddressInUse) {
+                    return err;
+                }
+            };
+        }
     }
 }
 
-const Handler = struct {
+const AutoBahnHandler = struct {
     conn: *ws.WebSocketConnection,
     context: *Context,
 
-    pub fn init(conn: *ws.WebSocketConnection, context: *Context) !Handler {
+    pub fn init(conn: *ws.WebSocketConnection, context: *Context) !AutoBahnHandler {
         return .{ .conn = conn, .context = context };
     }
 
     // Optional: Will be called every 5 seconds
-    pub fn cronJob(self: *Handler) !void {
+    pub fn cronJob(self: *AutoBahnHandler) !void {
         _ = self;
     }
 
     // Optional: Will be called when the connection was closed
-    pub fn onClose(self: *Handler) !void {
+    pub fn onClose(self: *AutoBahnHandler) !void {
         _ = self;
     }
 
     // Optional: Will be called in case of an error and the connection was therefore closed
-    pub fn onError(self: *Handler) !void {
+    pub fn onError(self: *AutoBahnHandler) !void {
         _ = self;
         // remove from context
     }
 
     // Required: Will be called when a new message was send
-    pub fn onMessage(self: *Handler, data: ws.WebSocketData) !void {
-        _ = self;
-        var pbuf = data.payload;
-        // if (pbuf.len > 15) {
-        //     pbuf = data.payload[0..15];
-        // }
-
-        std.log.info("New message: {s}", .{pbuf});
-
-        // const resp = ws.WebSocketData{ .type = .Text, .payload = pbuf };
-
-        // try self.conn.send(resp);
+    pub fn onMessage(self: *AutoBahnHandler, data: ws.WebSocketData) !void {
+        try self.conn.send(data);
     }
 };
 

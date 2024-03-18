@@ -11,6 +11,10 @@ const HttpHeader = struct {
     fields: std.StringHashMap([]const u8),
     body: []u8 = undefined,
 
+    pub fn deinit(self: *HttpHeader) void {
+        self.fields.deinit();
+    }
+
     fn status_code_as_string(self: *HttpHeader) ![]const u8 {
         if (self.status_code) |code| {
             return switch (code) {

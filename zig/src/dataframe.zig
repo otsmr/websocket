@@ -15,11 +15,11 @@ const Opcode = enum(usize) {
 };
 
 const DataFrameFlags = struct {
-    fin: bool,
-    rsv1: bool,
-    rsv2: bool,
-    rsv3: bool,
-    mask: bool,
+    fin: bool = true,
+    rsv1: bool = false,
+    rsv2: bool = false,
+    rsv3: bool = false,
+    mask: bool = false,
 
     fn to_bytes(self: *DataFrameFlags) [2]u8 {
         var ret: [2]u8 = .{ 0, 0 };
@@ -53,7 +53,7 @@ const DataFrameFlags = struct {
 
 pub const Dataframe = struct {
     opcode: Opcode,
-    flags: DataFrameFlags,
+    flags: DataFrameFlags = DataFrameFlags{},
     masking_key: ?[4]u8 = null,
     payload_filled_len: u64 = 0,
     // Will be allocated with the payload_len so the payload.len will be
@@ -61,12 +61,22 @@ pub const Dataframe = struct {
     payload: []u8 = undefined,
     consumed_len: u64 = 0,
     allocator: std.mem.Allocator,
+    raw_bytes: ?[]u8 = null,
 
-    pub fn get_pong(allocator: std.mem.Allocator) !Dataframe {
+    pub fn get_pong(allocator: std.mem.Allocator, payload: []u8) !Dataframe {
+        return Dataframe{ .opcode = .Pong, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
+    }
+
+    pub fn get_ping(allocator: std.mem.Allocator) !Dataframe {
         var payload = try allocator.alloc(u8, 0);
-        var flags = DataFrameFlags.from_bytes(0, 0);
-        flags.fin = true;
-        return Dataframe{ .opcode = .Pong, .flags = flags, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
+        return Dataframe{ .opcode = .Ping, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
+    }
+
+    pub fn closing(allocator: std.mem.Allocator, statuscode: u16) !Dataframe {
+        var payload = try allocator.alloc(u8, 2);
+        payload[0] = @intCast(statuscode >> 8);
+        payload[1] = @intCast(statuscode & 0xff);
+        return Dataframe{ .opcode = .ConectionClose, .payload = payload, .payload_filled_len = payload.len, .allocator = allocator };
     }
 
     pub fn from_websocket_data(allocator: std.mem.Allocator, data: ws.WebSocketData) !Dataframe {
@@ -75,13 +85,19 @@ pub const Dataframe = struct {
             .Text => opcode = Opcode.TextFrame,
             .Binary => opcode = Opcode.BinaryFrame,
         }
-        var flags = DataFrameFlags.from_bytes(0, 0);
-        flags.fin = true;
+        var flags = DataFrameFlags{};
         return Dataframe{ .opcode = opcode, .flags = flags, .payload = data.payload, .payload_filled_len = data.payload.len, .allocator = allocator };
     }
 
     pub fn to_raw_bytes(self: *Dataframe) ![]u8 {
-        var buf = try self.allocator.alloc(u8, self.payload.len + 100);
+        var buf: []u8 = undefined;
+        if (self.raw_bytes != null and buf.len >= self.payload.len + 100) {
+            buf = self.raw_bytes.?;
+        } else {
+            buf = try self.allocator.alloc(u8, self.payload.len + 100);
+            self.raw_bytes = buf;
+        }
+
         var flags = self.flags.to_bytes();
 
         buf[0] = @intCast(@intFromEnum(self.opcode));
@@ -93,7 +109,7 @@ pub const Dataframe = struct {
         if (self.payload.len > 0xFFFF) {
             buf[1] |= 127;
             for (0..8) |i| {
-                buf[header_size + i] = @intCast(self.payload.len >> @intCast(((7 - i) * 8)));
+                buf[header_size + i] = @intCast((self.payload.len >> @intCast(((7 - i) * 8)) & 0xff));
             }
             header_size += 8;
         } else if (self.payload.len >= 126) {
@@ -108,8 +124,22 @@ pub const Dataframe = struct {
         return buf[0 .. header_size + self.payload.len];
     }
 
+    pub fn get_closing_code(self: *Dataframe) !u16 {
+        if (self.payload.len == 0) {
+            return 1000;
+        }
+        if (self.payload.len < 2) {
+            return error.ProtocolError;
+        }
+        var statuscode: u16 = (@as(u16, @intCast(self.payload[0])) << 8) | @as(u16, @intCast(self.payload[1]));
+        return statuscode;
+    }
+
     pub fn deinit(self: *Dataframe) void {
         self.allocator.free(self.payload);
+        if (self.raw_bytes != null) {
+            self.allocator.free(self.raw_bytes.?);
+        }
     }
 
     pub fn is_fully_received(self: *Dataframe) bool {
@@ -124,9 +154,11 @@ pub const Dataframe = struct {
             return error.ToMuchData;
         }
         if (self.flags.mask) {
-            for (0..data.len) |i| {
-                const index = self.payload_filled_len + i;
-                self.payload[index] = data[i] ^ self.masking_key.?[index % 4];
+            if (self.masking_key) |masking_key| {
+                for (0..data.len) |i| {
+                    const index = self.payload_filled_len + i;
+                    self.payload[index] = data[i] ^ masking_key[index % 4];
+                }
             }
         } else {
             std.mem.copy(u8, self.payload[self.payload_filled_len..], data);

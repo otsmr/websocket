@@ -62,8 +62,8 @@ pub const ChatHandler = struct {
             return;
         }
         self.onlineUserChangedUsers = self.context.onlineUserChangedUsers;
-        std.log.info("Update users list", .{});
         var userList = try self.conn.allocator.alloc([]const u8, self.context.onlineUsers.count());
+        defer self.conn.allocator.free(userList);
         var users = self.context.onlineUsers.keyIterator();
         var i: usize = 0;
         while (users.next()) |username| : (i += 1) {
@@ -71,11 +71,11 @@ pub const ChatHandler = struct {
         }
         var item = Item{ .kind = "update-online-users", .online_users = OnlineUsers{ .usernames = userList } };
         const resp = try std.json.stringifyAlloc(self.context.allocator, item, .{});
+        defer self.conn.allocator.free(resp);
         try self.conn.sendText(resp);
     }
 
     pub fn onClose(self: *ChatHandler) !void {
-        std.log.info("Connection closed!", .{});
         try self.removeFromOnlineUsers();
     }
 
@@ -116,8 +116,14 @@ pub const ChatHandler = struct {
         var connections = self.context.onlineUsers.get(self.username.?);
         if (connections != null) {
             _ = connections.?.remove(self.user_connection_id);
+
+            // Why does connections.?.count() does not work?
+            var connections_keys = connections.?.keyIterator();
+            var open_connections: usize = 0;
+            while (connections_keys.next()) |_| : (open_connections += 1) {}
+
             // User is not online any more so remove from online users
-            if (connections.?.count() == 0) {
+            if (open_connections == 0) {
                 _ = self.context.onlineUsers.remove(self.username.?);
             }
         }
@@ -143,14 +149,12 @@ pub const ChatHandler = struct {
             for (0..1000) |i| {
                 if (userConnections.?.getKey(i) == null) {
                     self.user_connection_id = i;
-                    std.log.info("Adding new Connection: {d} {any}", .{ self.user_connection_id, self.user_connection_id });
                     try userConnections.?.put(self.user_connection_id, self.conn);
                     break;
                 }
             }
         } else {
             self.user_connection_id = 0;
-            std.log.info("Adding new !! Connection: {d} {any}", .{ self.user_connection_id, self.user_connection_id });
             var connections = std.AutoHashMap(usize, *ws.WebSocketConnection).init(self.context.allocator);
             try connections.put(self.user_connection_id, self.conn);
             try self.context.onlineUsers.put(self.username.?, connections);
@@ -190,7 +194,6 @@ pub const ChatHandler = struct {
         const myConnections = self.context.onlineUsers.get(message.from);
         var myHandlers = myConnections.?.valueIterator();
         while (myHandlers.next()) |handler| {
-            // std.log.info("Found handler: {d}", .{handler.*.connection});
             try handler.*.sendText(sendMessage);
         }
     }
@@ -250,7 +253,6 @@ pub const ChatHandler = struct {
 
         self.username = @ptrCast(heapUsername);
         try self.addToOnlineUsers();
-
         try self.conn.sendText(sessionResp);
     }
 
@@ -258,19 +260,25 @@ pub const ChatHandler = struct {
         var db_username = self.context.sessions.get(session_id);
         var item: ?Item = null;
         var respUser: User = undefined;
+
         if (db_username) |username| {
             respUser = User{ .username = @ptrCast(username), .password = "[redacted]" };
             item = Item{ .kind = "session", .session_id = session_id, .user = respUser };
+
             var heapUsername = try self.context.allocator.alloc(u8, username.len);
             std.mem.copy(u8, heapUsername, username);
+
             self.username = @ptrCast(heapUsername);
             try self.addToOnlineUsers();
         }
+
         if (item == null) {
             item = Item{ .kind = "invalid-session" };
         }
+
         const sessionResp = try std.json.stringifyAlloc(self.context.allocator, item.?, .{});
         defer self.context.allocator.free(sessionResp);
+
         try self.conn.sendText(sessionResp);
     }
 };
